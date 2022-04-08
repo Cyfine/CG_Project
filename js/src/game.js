@@ -10,7 +10,7 @@ var Colors = {
 
 var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-    renderer, container;
+    renderer, container, controls;
 
 window.addEventListener('load', init, false);
 
@@ -26,12 +26,18 @@ function init() {
     createRoad();
     createSky();
     createCar();
+    addHelpers();
 
     // start a loop that will update the objects' positions
     // and render the scene on each frame
     document.addEventListener('mousemove', handleMousemove, false);
 
     loop();
+}
+
+function addHelpers(){
+    var axesHelper = new THREE.AxesHelper(5000);
+    scene.add( axesHelper );
 }
 
 function createScene() {
@@ -60,9 +66,10 @@ function createScene() {
         farPlane
     );
 
+
     // Set the position of the camera
-    camera.position.x = -100;
-    camera.position.z = 100;
+    camera.position.x = 0;
+    camera.position.z = 300;
     camera.position.y = 400;
 
     camera.rotateY(-Math.PI * 0.5);
@@ -92,7 +99,7 @@ function createScene() {
     container = document.getElementById('world');
     container.appendChild(renderer.domElement);
 
-    //controls = new THREE.TrackballControls(camera);
+    controls = new THREE.TrackballControls(camera);
 
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
@@ -154,7 +161,7 @@ const  Road = function () {
     var geom = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
 
     // rotate the geometry on the x axis
-    geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    geom.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
 
     // create the material
     var mat = new THREE.MeshPhongMaterial({
@@ -229,13 +236,12 @@ const Cloud = function () {
     }
 }
 
-// Define a Sky Object
+
 const Sky = function () {
     // Create an empty container
     this.mesh = new THREE.Object3D();
 
-    // choose a number of clouds to be scattered in the sky
-    this.nClouds = 20;
+    this.nClouds = 70;
 
     // To distribute the clouds consistently,
     // we need to place them according to a uniform angle
@@ -245,16 +251,15 @@ const Sky = function () {
     for (var i = 0; i < this.nClouds; i++) {
         var c = new Cloud();
 
-        // set the rotation and the position of each cloud;
-        // for that we use a bit of trigonometry
+
         var a = stepAngle * i; // this is the final angle of the cloud
-        var h = 750 + Math.random() * 200; // this is the distance between the center of the axis and the cloud itself
+        var h = 1500 + Math.random() * 200; // this is the distance between the center of the axis and the cloud itself
 
         // Trigonometry!!! I hope you remember what you've learned in Math :)
         // in case you don't:
         // we are simply converting polar coordinates (angle, distance) into Cartesian coordinates (x, y)
         c.mesh.position.y = Math.sin(a) * h;
-        c.mesh.position.x = Math.cos(a) * h;
+        c.mesh.position.z = Math.cos(a) * h;
 
         // rotate the cloud according to its position
         c.mesh.rotation.z = a + Math.PI / 2;
@@ -293,6 +298,7 @@ var Car = function () {
         gltf.scene.scale.set(.15, .15, .15);
         gltf.scene.position.z = 0;
         gltf.scene.position.y = 20;
+        gltf.scene.rotation.y = 3.14/2;
         scene.add(gltf.scene);
         console.log('gltf', gltf);
 
@@ -315,16 +321,11 @@ function createCar() {
     car = new Car();
 }
 
-function createPlane() {
-    var airplane = new AirPlane();
-    airplane.mesh.scale.set(.25, .25, .25);
-    airplane.mesh.position.y = 100;
-    scene.add(airplane.mesh);
-}
+
 
 
 var mousePos = {x:0, y:0}
-function  handleMousemove(){
+function  handleMousemove(event){
     let normalizedX = -1 + (event.clientX / WIDTH)*2;
     let normalizedY = 1 - (event.clientY / HEIGHT)*2;
     mousePos = {x:normalizedX, y:normalizedY};
@@ -350,9 +351,9 @@ function loop() {
 
     // Rotate the propeller, the sea and the sky
     //airplane.propeller.rotation.x += 0.3;
-    sea.mesh.rotation.z += .005;
-    sky.mesh.rotation.z += .01;
-
+    sea.mesh.rotation.x += .005;
+    sky.mesh.rotation.x += .01;
+    controls.update();
     //controls.update();
 
     // render the scene

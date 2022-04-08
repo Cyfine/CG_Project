@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Develop Testing page</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%
+        }
+
+        #world {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(#bae4c3, #f7d9aa);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            cursor: move;
+        }
+    </style>
+    <script src="js/three.js"></script>
+    <script src="js/controls/TrackballControls.js"></script>
+    <script src="js/loaders/GLTFLoader.js"></script>
+
+    <!--    todo: here to import the js file-->
+    <script type="text/javascript" src="js/src/Car_0.js"></script>
+</head>
+<body>
+<div class="world" id="world"></div>
+</body>
+</html>
