@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Rotating Can</title>
+    <style>
+      html, body { margin: 0; padding: 0; overflow: hidden; }
+    </style>
+  </head>
+
+    <body>
+        <script src="js/three.js"></script>
+        <script src="js/controls/TrackballControls.js"></script>
+        <script src="/js/loaders/GLTFLoader.js"></script>
+        <script>
+            var scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+
+            var aspect = window.innerWidth / window.innerHeight;
+            var camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            
+            controls = new THREE.TrackballControls( camera );
+
+            // MORE Javascript will go here.
+            var textureLoader = new THREE.TextureLoader();
+            textureLoader.setPath('/textures/');
+                    
+            var textureSpec = textureLoader.load("SpecularMap.png");
+            var textureNrm = textureLoader.load("NormalMap.png");
+            var textureColor = textureLoader.load("e81be931573364cda71054c73184601e32e10020_n.png");
+            var textureDisp = textureLoader.load("DisplacementMap.png");
+                
+            var loader = new THREE.CubeTextureLoader();
+            loader.setPath( '/textures/cube/' );
+                
+            var textureCube = loader.load([
+                'pos-x.png', 'neg-x.png',
+                'pos-y.png', 'neg-y.png',
+                'pos-z.png', 'neg-z.png'
+            ]);
+
+            var geometry = new THREE.CylinderGeometry(15, 15, 30, 32);
+
+            var material = new THREE.MeshPhongMaterial({
+                map: textureColor,
+                normalMap: textureNrm,
+                specularMap: textureSpec,
+                envMap: textureCube,
+                displacementMap: textureDisp,
+                shininess: 300
+            });
+
+            var cylinder = new THREE.Mesh(geometry, material);
+            scene.add(cylinder);
+
+            var light = new THREE.PointLight( 0xffffff, 10, 1000 );
+            light.position.set( 0, 300, 0 );
+            scene.add( light );
+            var light2 = new THREE.AmbientLight( 0x404040 ); // soft white light
+            scene.add( light2 );
+
+            camera.position.z = 300;
+
+            var mouse = new THREE.Vector2();
+
+            function onDocumentMouseMove(event) {
+
+                event.preventDefault();
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+            }
+            document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+            var textarea = document.createElement('div');
+            textarea.id= 'textarea1';
+            textarea.style.position = 'absolute';
+            textarea.style.top = '20%';
+            textarea.style.left = '50%';
+            textarea.style.color = 'blue';
+            textarea.style.fontFamily = '標楷體';
+            textarea.style.fontSize = '5rem';
+            textarea.style.transform = 'translate(-50%, -50%)';
+            document.body.appendChild(textarea);
+
+            var mixer;
+            var loader = new THREE.GLTFLoader();
+            loader.load('models/chinese_female_civilians/scene.gltf', function (gltf) {
+
+                scene.add(gltf.scene);
+                console.log('gltf', gltf);      // comment it out later
+                gltf.scene.position.set(20, -20, -20);
+                gltf.scene.scale.set(10, 10, 10);
+
+                mixer = new THREE.AnimationMixer(gltf.scene);   // create global mixer
+                var clips = gltf.animations;
+
+                var clip = THREE.AnimationClip.findByName(clips, 'Take 001');
+                var action = mixer.clipAction(clip);
+                action.play();
+
+            }, undefined, function (error) {
+
+                console.error(error);
+
+            });
+            var clock = new THREE.Clock();
+
+            var render = function () {
+                requestAnimationFrame(render);
+                //cylinder.rotation.y += 0.1;
+                raycaster = new THREE.Raycaster();
+                var vector = new THREE.Vector3( mouse.x, mouse.y, 1 ).unproject( camera );
+                raycaster.set( camera.position, vector.sub( camera.position ).normalize() );
+                var intersects = raycaster.intersectObjects( scene.children );
+                if (intersects.length > 0 && intersects[0].object == cylinder) {
+                    cylinder.material.emissive.setHex(0x486531);
+                    document.getElementById('textarea1').innerHTML = 'Hello World';
+                } else {
+                    cylinder.material.emissive.setHex(0x000000);
+                    cylinder.rotation.y += 0.1;
+                    document.getElementById('textarea1').innerHTML = '';
+                }
+
+                var delta = clock.getDelta();
+                if (mixer) mixer.update(delta);
+
+                controls.update();
+                renderer.render(scene, camera);
+            };
+
+            render();
+        </script>
+    </body>
+
+</html>
