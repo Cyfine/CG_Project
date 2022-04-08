@@ -360,7 +360,30 @@
             scene.add(airplane.mesh);
         }
 
-        let OneConeTree = function(color){
+        let BoxTree = function(color){
+            this.mesh = new THREE.Object3D();
+            let leaf = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: .7,
+                shading: THREE.FlatShading,
+            });
+            let stunk = new THREE.MeshPhongMaterial({
+                color: Colors.brown,
+                shading: THREE.FlatShading,
+            });
+            let geo = new THREE.BoxGeometry(100, 350, 100);
+            let m = new THREE.Mesh(geo, leaf);
+            m.position.y = 170;
+            this.mesh.add(m);
+
+            let geoS = new THREE.BoxGeometry(35,35,200);
+            let s = new THREE.Mesh(geoS, stunk);
+            s.rotation.x = Math.PI/2;
+            this.mesh.add(s);
+        }
+
+        let ConeTree = function(color){
             this.mesh = new THREE.Object3D();
             let leaf = new THREE.MeshPhongMaterial({
                 color: color,
@@ -437,14 +460,20 @@
         }
 
         function createTree(){
-            const tree = new OneConeTree(Colors.blue);
+            const trees = new THREE.Object3D();
+            const tree = new ConeTree(Colors.blue);
             const tree2 = new ThreeConesTree(Colors.pink);
             const tree3 = new FiveConesTree(Colors.green);
+            const tree4 = new BoxTree(Colors.red);
             tree2.mesh.position.x = 300;
             tree3.mesh.position.x = -300;
-            scene.add(tree.mesh);
-            scene.add(tree2.mesh);
-            scene.add(tree3.mesh);
+            tree4.mesh.position.z = 300;
+            trees.add(tree.mesh);
+            trees.add(tree2.mesh);
+            trees.add(tree3.mesh);
+            trees.add(tree4.mesh);
+            trees.position.x = 1000;
+            scene.add(trees);
         }
 
         var mousePos = {x:0, y:0}
