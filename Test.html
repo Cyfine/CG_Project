@@ -42,11 +42,12 @@
             pink: 0xF5986E,
             brownDark: 0x23190f,
             blue: 0x68c3c0,
+            green: 0x24942c,
         };
 
         var scene,
             camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-            renderer, container;
+            renderer, container, controls;
 
         window.addEventListener('load', init, false);
 
@@ -59,9 +60,10 @@
 
             // add the objects
             //createPlane();
-            createSea();
-            createSky();
-            createCar();
+            //createSea();
+            //createSky();
+            //createCar();
+            createTree();
 
             // start a loop that will update the objects' positions 
             // and render the scene on each frame
@@ -128,7 +130,7 @@
             container = document.getElementById('world');
             container.appendChild(renderer.domElement);
 
-            //controls = new THREE.TrackballControls(camera);
+            controls = new THREE.TrackballControls(camera);
 
             // Listen to the screen: if the user resizes it
             // we have to update the camera and the renderer size
@@ -358,6 +360,92 @@
             scene.add(airplane.mesh);
         }
 
+        let OneConeTree = function(color){
+            this.mesh = new THREE.Object3D();
+            let leaf = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: .7,
+                shading: THREE.FlatShading,
+            });
+            let stunk = new THREE.MeshPhongMaterial({
+                color: Colors.brown,
+                shading: THREE.FlatShading,
+            });
+            let geo = new THREE.ConeGeometry(100, 350, 4);
+            let m = new THREE.Mesh(geo, leaf);
+            m.position.y = 170;
+            this.mesh.add(m);
+            let geoS = new THREE.BoxGeometry(35,35,200);
+            let s = new THREE.Mesh(geoS, stunk);
+            s.rotation.x = Math.PI/2;
+            this.mesh.add(s);
+        }
+
+        let ThreeConesTree = function(color){
+            this.mesh = new THREE.Object3D();
+            let leaf = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: .7,
+                shading: THREE.FlatShading,
+            });
+
+            let stunk = new THREE.MeshPhongMaterial({
+                color: Colors.brown,
+                shading: THREE.FlatShading,
+            });
+
+            for(let i = 0; i < 3; i++){
+                let geo = new THREE.ConeGeometry(200 - i * 60, 200 - i * 50, 4);
+                let m = new THREE.Mesh(geo, leaf);
+                m.position.y = 150 +  200 * i * 0.9 - i * 90;
+                this.mesh.add(m);
+            }
+
+            let geoS = new THREE.BoxGeometry(35,35,200);
+            let s = new THREE.Mesh(geoS, stunk);
+            s.rotation.x = Math.PI/2;
+            this.mesh.add(s);
+        }
+
+        let FiveConesTree = function(color){
+            this.mesh = new THREE.Object3D();
+            let leaf = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: .7,
+                shading: THREE.FlatShading,
+            });
+
+            let stunk = new THREE.MeshPhongMaterial({
+                color: Colors.brown,
+                shading: THREE.FlatShading,
+            });
+
+            for(let i = 0; i < 5; i++){
+                let geo = new THREE.ConeGeometry(200 - i * 30, 200 - i * 20, 4);
+                let m = new THREE.Mesh(geo, leaf);
+                m.position.y = 150 +  200 * i * 0.9 - i * 90;
+                this.mesh.add(m);
+            }
+
+            let geoS = new THREE.BoxGeometry(35,35,200);
+            let s = new THREE.Mesh(geoS, stunk);
+            s.rotation.x = Math.PI/2;
+            this.mesh.add(s);
+        }
+
+        function createTree(){
+            const tree = new OneConeTree(Colors.blue);
+            const tree2 = new ThreeConesTree(Colors.pink);
+            const tree3 = new FiveConesTree(Colors.green);
+            tree2.mesh.position.x = 300;
+            tree3.mesh.position.x = -300;
+            scene.add(tree.mesh);
+            scene.add(tree2.mesh);
+            scene.add(tree3.mesh);
+        }
 
         var mousePos = {x:0, y:0}
         function  handleMousemove(){
@@ -386,10 +474,8 @@
 
             // Rotate the propeller, the sea and the sky
             //airplane.propeller.rotation.x += 0.3;
-            sea.mesh.rotation.z += .005;
-            sky.mesh.rotation.z += .01;
 
-            //controls.update();
+            controls.update();
 
             // render the scene
             renderer.render(scene, camera);
