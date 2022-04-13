@@ -1,0 +1,11 @@
+Model Information:
+* title:	Mountain
+* source:	https://sketchfab.com/3d-models/mountain-a45e579a7d754a1dbf40cdc5cdfe508a
+* author:	Artbake Graphics (https://sketchfab.com/ismir)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Mountain" (https://sketchfab.com/3d-models/mountain-a45e579a7d754a1dbf40cdc5cdfe508a) by Artbake Graphics (https://sketchfab.com/ismir) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

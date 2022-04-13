@@ -60,10 +60,10 @@
 
             // add the objects
             //createPlane();
-            //createSea();
-            //createSky();
-            //createCar();
-            createTree();
+            createSea();
+            createSky();
+            createCar();
+            //createTree();
 
             // start a loop that will update the objects' positions 
             // and render the scene on each frame
@@ -185,17 +185,18 @@
 
         // First let's define a Sea object :
         const  Sea = function () {
+            this.mesh = new THREE.Object3D();
 
             // create the geometry (shape) of the cylinder;
             // the parameters are: 
             // radius top, radius bottom, height, number of segments on the radius, number of segments vertically
-            var geom = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
+            let geom = new THREE.CylinderGeometry(600, 600, 800, 40, 10);
 
             // rotate the geometry on the x axis
             geom.applyMatrix(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
 
             // create the material 
-            var mat = new THREE.MeshPhongMaterial({
+            let mat = new THREE.MeshPhongMaterial({
                 color: Colors.red,
                 transparent: false,
                 opacity: .6,
@@ -204,7 +205,19 @@
 
             // To create an object in Three.js, we have to create a mesh 
             // which is a combination of a geometry and some material
-            this.mesh = new THREE.Mesh(geom, mat);
+            let s = new THREE.Mesh(geom, mat);
+            this.mesh.add(s);
+
+            for(let k = 0; k < 15; k++){
+                let tree = new ConeTree(Colors.red);
+                let angle = Math.PI * 2 * Math.random();
+                tree.mesh.position.y = 630 * Math.sin(angle);
+                tree.mesh.position.x = 630 * Math.cos(angle);
+                tree.mesh.position.z = -350 + Math.random() * 700;
+                tree.mesh.rotation.z = angle - Math.PI/2;
+                tree.mesh.scale.set(.3, .3, .3);
+                this.mesh.add(tree.mesh);
+            }
 
             // Allow the sea to receive shadows
             this.mesh.receiveShadow = true;
@@ -326,11 +339,11 @@
 
         var Car = function () {
             var loader = new THREE.GLTFLoader();
-
             loader.load('models/car/scene.gltf', function (gltf) {
                 gltf.scene.scale.set(.15, .15, .15);
                 gltf.scene.position.z = 0;
-                gltf.scene.position.y = 20;
+                gltf.scene.position.y = 0;
+                gltf.scene.position.x = 0;
                 scene.add(gltf.scene);
                 console.log('gltf', gltf);
 
@@ -343,9 +356,7 @@
                 action.play()
 
             }, undefined, function (error) {
-
                 console.error(error);
-
             });
         }
 
@@ -500,6 +511,9 @@
             var delta = clock.getDelta();
 
             if (mixer) mixer.update(delta);
+
+            sea.mesh.rotation.z += .005;
+            sky.mesh.rotation.z += .01;
 
             // Rotate the propeller, the sea and the sky
             //airplane.propeller.rotation.x += 0.3;
