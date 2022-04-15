@@ -47,7 +47,10 @@
 
         var scene,
             camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-            renderer, container, controls;
+            renderer, container, controls, enemiesHolder;
+
+        var level = 3;
+        var rotateSpeed = 0.005;
 
         window.addEventListener('load', init, false);
 
@@ -64,6 +67,8 @@
             createSky();
             createCar();
             //createTree();
+            createEnemies();
+            enemiesHolder.spawnEnemies();
 
             // start a loop that will update the objects' positions 
             // and render the scene on each frame
@@ -208,17 +213,6 @@
             let s = new THREE.Mesh(geom, mat);
             this.mesh.add(s);
 
-            for(let k = 0; k < 15; k++){
-                let tree = new ConeTree(Colors.red);
-                let angle = Math.PI * 2 * Math.random();
-                tree.mesh.position.y = 630 * Math.sin(angle);
-                tree.mesh.position.x = 630 * Math.cos(angle);
-                tree.mesh.position.z = -350 + Math.random() * 700;
-                tree.mesh.rotation.z = angle - Math.PI/2;
-                tree.mesh.scale.set(.3, .3, .3);
-                this.mesh.add(tree.mesh);
-            }
-
             // Allow the sea to receive shadows
             this.mesh.receiveShadow = true;
         }
@@ -339,13 +333,14 @@
 
         var Car = function () {
             var loader = new THREE.GLTFLoader();
+            var c = this;
             loader.load('models/car/scene.gltf', function (gltf) {
                 gltf.scene.scale.set(.15, .15, .15);
                 gltf.scene.position.z = 0;
                 gltf.scene.position.y = 0;
                 gltf.scene.position.x = 0;
                 scene.add(gltf.scene);
-                console.log('gltf', gltf);
+                //console.log('gltf', gltf);
 
                 mixer = new THREE.AnimationMixer(gltf.scene);
                 var clips = gltf.animations;
@@ -353,8 +348,8 @@
                 var clip = THREE.AnimationClip.findByName(clips, 'Car engine');
                 var action = mixer.clipAction(clip);
 
+                c.scene = gltf.scene;
                 action.play()
-
             }, undefined, function (error) {
                 console.error(error);
             });
@@ -487,6 +482,42 @@
             scene.add(trees);
         }
 
+        let EnemiesHolder = function(){
+            this.mesh = new THREE.Object3D();
+            this.ennemiesInUse = [];
+        }
+
+        EnemiesHolder.prototype.spawnEnemies = function(){
+            for(let i = 0; i < level; i++){
+                let tree = new ConeTree((Colors.red));
+                let angle = Math.PI * 3 / 2 - sea.mesh.rotation.z;
+                tree.mesh.position.y = 630 * Math.sin(angle);
+                tree.mesh.position.x = 630 * Math.cos(angle);
+                tree.mesh.position.z = -350 + Math.random() * 700;
+                tree.mesh.rotation.z = angle - Math.PI/2;
+                tree.mesh.scale.set(.3, .3, .3);
+                this.mesh.add(tree.mesh);
+            }
+        }
+
+        EnemiesHolder.prototype.rotateEnemies = function(){
+            sea.mesh.add(this.mesh);
+        }
+
+        function createEnemies(){
+            enemiesHolder = new EnemiesHolder();
+            scene.add(enemiesHolder.mesh)
+        }
+
+        function normalize(v,vmin,vmax,tmin, tmax){
+            var nv = Math.max(Math.min(v,vmax), vmin);
+            var dv = vmax-vmin;
+            var pc = (nv-vmin)/dv;
+            var dt = tmax-tmin;
+            var tv = tmin + (pc*dt);
+            return tv;
+        }
+
         var mousePos = {x:0, y:0}
         function  handleMousemove(){
             let normalizedX = -1 + (event.clientX / WIDTH)*2;
@@ -495,14 +526,12 @@
         }
 
         function updateCar(){
-            let dx = normalize(mousePos.x, -1, 1, -100, 100);
-            let dy = normalize(mousePos.y, -1, 1, 25, 175);
-
-
+            //let dy = normalize(mousePos.y, -1, 1, 25, 175);
+            if(car.scene){
+                console.log(car.scene.position);
+                car.scene.position.z = -1 * mousePos.y * 370;
+            }
         }
-
-
-
 
         var clock = new THREE.Clock();
 
@@ -512,8 +541,13 @@
 
             if (mixer) mixer.update(delta);
 
-            sea.mesh.rotation.z += .005;
+            sea.mesh.rotation.z += rotateSpeed;
             sky.mesh.rotation.z += .01;
+            if(Math.random() > 0.993){
+                enemiesHolder.spawnEnemies();
+            }
+            enemiesHolder.rotateEnemies();
+            updateCar();
 
             // Rotate the propeller, the sea and the sky
             //airplane.propeller.rotation.x += 0.3;
