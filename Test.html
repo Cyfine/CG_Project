@@ -493,6 +493,11 @@
                for(let i = 0; i < level; i++){
                    if(enemiesPool.length){
                        tree = enemiesPool.pop();
+                       tree.mesh.position.y = 630 * Math.sin(tree.angle);
+                       tree.mesh.position.x = 630 * Math.cos(tree.angle);
+                       tree.mesh.position.z = -350 + Math.random() * 700;
+                       let size = Math.max(Math.random() * 0.7, 0.3)
+                       tree.mesh.scale.set(size, size, size);
                    }else{
                        if(kindOfTree === "ConeTree"){
                            tree = new ConeTree((color));
@@ -529,11 +534,6 @@
                    if(enemy.angle > 7 * Math.PI / 2){
                        this.mesh.remove(enemy.mesh);
                        enemy.angle = Math.PI * 3 / 2;
-                       enemy.mesh.position.y = 630 * Math.sin(enemy.angle);
-                       enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
-                       enemy.mesh.position.z = -350 + Math.random() * 700;
-                       let size = Math.max(Math.random() * 0.7, 0.3)
-                       enemy.mesh.scale.set(size, size, size);
                        enemiesPool.push(enemy);
                    }
                }
@@ -580,7 +580,7 @@
             sea.mesh.rotation.z += rotateSpeed;
             sky.mesh.rotation.z += .01;
             if(Math.random() > 0.99){
-                enemiesHolder.spawnEnemies(Colors.blue, "FiveConesTree");
+                enemiesHolder.spawnEnemies(Colors.blue, "BoxTree");
             }
             enemiesHolder.rotateEnemies();
             updateCar();
