@@ -28,6 +28,8 @@
     <script src="js/three.js"></script>
     <script src="js/controls/TrackballControls.js"></script>
     <script src="js/loaders/GLTFLoader.js"></script>
+    <script src="js/lib/perlin.js"></script>
+
     <div id="world">
 
     </div>
@@ -60,6 +62,8 @@
             resetGame();
             // set up the scene, the camera and the renderer
             createScene();
+            // randomly generate seed for the noise generator
+            noise.seed(Math.random());
 
             // add the lights
             createLights();
@@ -594,6 +598,11 @@
             // call the loop function again
             requestAnimationFrame(loop);
         }
+
+
+
+
+
     </script>
 </body>
 
