@@ -52,10 +52,12 @@
         var level = 3;
         var rotateSpeed = 0.005;
         var enemiesPool = [];
+        var game;
 
         window.addEventListener('load', init, false);
 
         function init() {
+            resetGame();
             // set up the scene, the camera and the renderer
             createScene();
 
@@ -75,6 +77,12 @@
             document.addEventListener('mousemove', handleMousemove, false);
 
             loop();
+        }
+
+        function resetGame() {
+            game = {
+                enemyDistanceTolerance:70,
+            }
         }
 
         function createScene() {
@@ -464,23 +472,6 @@
             this.mesh.add(s);
         }
 
-        function createTree(){
-            const trees = new THREE.Object3D();
-            const tree = new ConeTree(Colors.blue);
-            const tree2 = new ThreeConesTree(Colors.pink);
-            const tree3 = new FiveConesTree(Colors.green);
-            const tree4 = new BoxTree(Colors.red);
-            tree2.mesh.position.x = 300;
-            tree3.mesh.position.x = -300;
-            tree4.mesh.position.z = 300;
-            trees.add(tree.mesh);
-            trees.add(tree2.mesh);
-            trees.add(tree3.mesh);
-            trees.add(tree4.mesh);
-            trees.position.x = 1000;
-            scene.add(trees);
-        }
-
         //  I rewrite the enemy holder as a class
         class EnemiesHolder {
            constructor() {
@@ -505,6 +496,7 @@
                        }
                        this.enemiesInUse.push(tree);
                    }
+                   tree.use = true;
                    let angle = Math.PI * 3 / 2;
                    tree.angle = angle;
                    tree.color = color;
@@ -521,14 +513,25 @@
            rotateEnemies(){
                for(let i = 0; i < this.enemiesInUse.length; i++){
                    let enemy = this.enemiesInUse[i];
-                   enemy.angle += rotateSpeed * 2;
+                   if(!enemy.use) continue;
+                   enemy.angle += rotateSpeed * 3;
                    enemy.mesh.position.y = 630 * Math.sin(enemy.angle) - 600;
                    enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
                    enemy.mesh.rotation.z = enemy.angle - Math.PI/2;
                    if(enemy.angle > 7 * Math.PI / 2){
                        this.mesh.remove(enemy.mesh);
-                       enemy.angle = Math.PI * 3 / 2;
                        enemiesPool.push(enemy);
+                       enemy.use = false;
+                   }
+                   if(car){
+                       let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
+                       let d = diffPos.length();
+                       if(i == 0) console.log(d);
+                       if(d <= game.enemyDistanceTolerance){
+                           this.mesh.remove(enemy.mesh);
+                           enemiesPool.push(enemy);
+                           enemy.use = false;
+                       }
                    }
                }
            }
