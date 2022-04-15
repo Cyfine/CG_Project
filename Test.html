@@ -488,7 +488,7 @@
                this.enemiesInUse = [];
            }
 
-           spawnEnemies(color, kindOfTree){
+           spawnEnemies(color, kindOfTree, size){
                let tree;
                for(let i = 0; i < level; i++){
                    if(enemiesPool.length){
@@ -512,7 +512,6 @@
                    tree.mesh.position.x = 630 * Math.cos(angle);
                    tree.mesh.position.z = -350 + Math.random() * 700;
                    tree.mesh.rotation.z = angle - Math.PI/2;
-                   let size = Math.max(Math.random() * 0.7, 0.3)
                    tree.mesh.scale.set(size, size, size);
                    this.mesh.add(tree.mesh);
                }
@@ -575,7 +574,8 @@
             sea.mesh.rotation.z += rotateSpeed;
             sky.mesh.rotation.z += .01;
             if(Math.random() > 0.99){
-                enemiesHolder.spawnEnemies(Colors.blue, "BoxTree");
+                let size = Math.max(Math.random() * 0.7, 0.3)
+                enemiesHolder.spawnEnemies(Colors.blue, "BoxTree", size);
             }
             enemiesHolder.rotateEnemies();
             updateCar();
