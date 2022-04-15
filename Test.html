@@ -493,11 +493,6 @@
                for(let i = 0; i < level; i++){
                    if(enemiesPool.length){
                        tree = enemiesPool.pop();
-                       tree.mesh.position.y = 630 * Math.sin(tree.angle);
-                       tree.mesh.position.x = 630 * Math.cos(tree.angle);
-                       tree.mesh.position.z = -350 + Math.random() * 700;
-                       let size = Math.max(Math.random() * 0.7, 0.3)
-                       tree.mesh.scale.set(size, size, size);
                    }else{
                        if(kindOfTree === "ConeTree"){
                            tree = new ConeTree((color));
@@ -508,17 +503,17 @@
                        }else if(kindOfTree === "FiveConesTree"){
                            tree = new FiveConesTree((color));
                        }
-                       let angle = Math.PI * 3 / 2;
-                       tree.angle = angle;
-                       tree.color = color;
-                       tree.mesh.position.y = 630 * Math.sin(angle);
-                       tree.mesh.position.x = 630 * Math.cos(angle);
-                       tree.mesh.position.z = -350 + Math.random() * 700;
-                       tree.mesh.rotation.z = angle - Math.PI/2;
-                       let size = Math.max(Math.random() * 0.7, 0.3)
-                       tree.mesh.scale.set(size, size, size);
                        this.enemiesInUse.push(tree);
                    }
+                   let angle = Math.PI * 3 / 2;
+                   tree.angle = angle;
+                   tree.color = color;
+                   tree.mesh.position.y = 630 * Math.sin(angle);
+                   tree.mesh.position.x = 630 * Math.cos(angle);
+                   tree.mesh.position.z = -350 + Math.random() * 700;
+                   tree.mesh.rotation.z = angle - Math.PI/2;
+                   let size = Math.max(Math.random() * 0.7, 0.3)
+                   tree.mesh.scale.set(size, size, size);
                    this.mesh.add(tree.mesh);
                }
            }
