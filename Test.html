@@ -25,56 +25,57 @@
 </head>
 
 <body>
-    <script src="js/three.js"></script>
-    <script src="js/controls/TrackballControls.js"></script>
-    <script src="js/loaders/GLTFLoader.js"></script>
-    <script src="js/lib/perlin.js"></script>
+<script src="js/three.js"></script>
+<script src="js/controls/TrackballControls.js"></script>
+<script src="js/loaders/GLTFLoader.js"></script>
+<script src="js/lib/perlin.js"></script>
+<script src="js/lib/util.js"></script>
 
-    <div id="world">
+<div id="world">
 
-    </div>
+</div>
 
-    <script>
-        // Our Javascript will go here.
-        "use strict";
-        var Colors = {
-            red: 0xf25346,
-            white: 0xd8d0d1,
-            brown: 0x59332e,
-            pink: 0xF5986E,
-            brownDark: 0x23190f,
-            blue: 0x68c3c0,
-            green: 0x24942c,
-        };
+<script>
+    // Our Javascript will go here.
+    "use strict";
+    var Colors = {
+        red: 0xf25346,
+        white: 0xd8d0d1,
+        brown: 0x59332e,
+        pink: 0xF5986E,
+        brownDark: 0x23190f,
+        blue: 0x68c3c0,
+        green: 0x24942c,
+    };
 
-        var scene,
-            camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-            renderer, container, controls, enemiesHolder;
+    var scene,
+        camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
+        renderer, container, controls, enemiesHolder;
 
-        var level = 3;
-        var rotateSpeed = 0.005;
-        var enemiesPool = [];
-        var game;
+    var level = 3;
+    var rotateSpeed = 0.005;
+    var enemiesPool = [];
+    var game;
 
-        window.addEventListener('load', init, false);
+    window.addEventListener('load', init, false);
 
-        function init() {
-            resetGame();
-            // set up the scene, the camera and the renderer
-            createScene();
-            // randomly generate seed for the noise generator
-            noise.seed(Math.random());
+    function init() {
+        resetGame();
+        // set up the scene, the camera and the renderer
+        createScene();
+        // randomly generate seed for the noise generator
+        noise.seed(Math.random());
 
-            // add the lights
-            createLights();
+        // add the lights
+        createLights();
 
-            // add the objects
-            //createPlane();
-            createSea();
-            createSky();
-            createCar();
-            //createTree();
-            createEnemies();
+        // add the objects
+        //createPlane();
+        createSea();
+        createSky();
+        createCar();
+        //createTree();
+        createEnemies();
 
             // start a loop that will update the objects' positions 
             // and render the scene on each frame
@@ -482,6 +483,10 @@
                this.mesh = new THREE.Object3D();
                this.enemiesInUse = [];
                this.enemiesPool = [];
+               this.spawnWidth = 700; // same as the width of the cylinder
+               this.cylinderRadius = 600; //  same as the radius of the terran cylinder
+               this.sampY = 0;
+               this.scale = 1;
            }
 
            spawnEnemies(color, type, size){
@@ -503,8 +508,66 @@
                }
            }
 
+        spawnEnemiesPerlin() {
+            let tree;
+            for (let i = 0; i < level; i++) {
+                if (enemiesPool.length) {
+                    tree = enemiesPool.pop();
+                } else {
+                    // if (kindOfTree === "ConeTree") {
+                    //     tree = new ConeTree((color));
+                    // } else if (kindOfTree === "BoxTree") {
+                    //     tree = new BoxTree((color));
+                    // } else if (kindOfTree === "ThreeConesTree") {
+                    //     tree = new ThreeConesTree((color));
+                    // } else if (kindOfTree === "FiveConesTree") {
+                    //     tree = new FiveConesTree((color));
+                    // }
+
+                    // the random generation process goes here
+                    let zPos = -350 + Math.random() * 700;
+
+                    // mapping the z position in sampling space of perlin noise
+                    // z correspond to x in the 2d sampling space
+                    zPos =  mapVal(zPos, -this.spawnWidth/2, this.spawnWidth/2,
+                        -this.scale*this.spawnWidth/2, this.scale*this.spawnWidth/2)
+
+                    // the generation score, with the generation score, we decide which
+                    // kind of the tree to generate
+                    let score = noise.perlin2(zPos, this.sampY);
+                    if(probability())
+
+
+
+
+
+
+
+                    this.enemiesInUse.push(tree);
+                }
+
+                tree.use = true;
+                let angle = Math.PI * 3 / 2;
+                tree.angle = angle;
+                tree.color = color;
+                tree.mesh.position.y = 630 * Math.sin(angle);
+                tree.mesh.position.x = 630 * Math.cos(angle);
+                tree.mesh.position.z = -350 + Math.random() * 700;
+                tree.mesh.rotation.z = angle - Math.PI / 2;
+                tree.mesh.scale.set(size, size, size);
+                this.mesh.add(tree.mesh);
+            }
+
+        }
+
 
            rotateEnemies(){
+               // update the y coordinate in the noise sampling space when the
+               // cylinder rotates
+               // rotationSpeed/2PI * PI*R^2
+               this.sampY += rotateSpeed * Math.pow(this.cylinderRadius, 2);
+
+
                for(let i = 0; i < this.enemiesInUse.length; i++){
                    let enemy = this.enemiesInUse[i];
                    if(enemy.use === false) continue;
@@ -613,6 +676,10 @@
 
 
 
+
+    function probability(p) {
+        return Math.random() > (1-p);
+    }
 
 
     </script>
