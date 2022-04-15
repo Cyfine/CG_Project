@@ -340,7 +340,6 @@
                 gltf.scene.position.y = 0;
                 gltf.scene.position.x = 0;
                 scene.add(gltf.scene);
-                //console.log('gltf', gltf);
 
                 mixer = new THREE.AnimationMixer(gltf.scene);
                 var clips = gltf.animations;
@@ -484,24 +483,35 @@
 
         let EnemiesHolder = function(){
             this.mesh = new THREE.Object3D();
-            this.ennemiesInUse = [];
+            this.enemiesInUse = [];
         }
 
         EnemiesHolder.prototype.spawnEnemies = function(){
             for(let i = 0; i < level; i++){
                 let tree = new ConeTree((Colors.red));
-                let angle = Math.PI * 3 / 2 - sea.mesh.rotation.z;
+                let angle = Math.PI * 3 / 2;
+                tree.angle = angle;
                 tree.mesh.position.y = 630 * Math.sin(angle);
                 tree.mesh.position.x = 630 * Math.cos(angle);
                 tree.mesh.position.z = -350 + Math.random() * 700;
                 tree.mesh.rotation.z = angle - Math.PI/2;
                 tree.mesh.scale.set(.3, .3, .3);
                 this.mesh.add(tree.mesh);
+                this.enemiesInUse.push(tree);
             }
         }
 
         EnemiesHolder.prototype.rotateEnemies = function(){
-            sea.mesh.add(this.mesh);
+            for(let i = 0; i < this.enemiesInUse.length; i++){
+                let enemy = this.enemiesInUse[i];
+                enemy.angle += rotateSpeed * 2;
+                enemy.mesh.position.y = 630 * Math.sin(enemy.angle) - 600;
+                enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
+                enemy.mesh.rotation.z = enemy.angle - Math.PI/2;
+                if(enemy.angle > 7 * Math.PI / 2){
+                    this.mesh.remove(enemy.mesh);
+                }
+            }
         }
 
         function createEnemies(){
@@ -528,7 +538,6 @@
         function updateCar(){
             //let dy = normalize(mousePos.y, -1, 1, 25, 175);
             if(car.scene){
-                console.log(car.scene.position);
                 car.scene.position.z = -1 * mousePos.y * 370;
             }
         }
