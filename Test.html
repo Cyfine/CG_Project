@@ -482,24 +482,39 @@
         }
 
         //  I rewrite the enemy holder as a class
-        class EHolder {
+        class EnemiesHolder {
            constructor() {
                this.mesh = new THREE.Object3D();
                this.enemiesInUse = [];
            }
 
-           spawnEnemies(){
+           spawnEnemies(color, kindOfTree){
+               let tree;
                for(let i = 0; i < level; i++){
-                   let tree = new ConeTree((Colors.red));
-                   let angle = Math.PI * 3 / 2;
-                   tree.angle = angle;
-                   tree.mesh.position.y = 630 * Math.sin(angle);
-                   tree.mesh.position.x = 630 * Math.cos(angle);
-                   tree.mesh.position.z = -350 + Math.random() * 700;
-                   tree.mesh.rotation.z = angle - Math.PI/2;
-                   tree.mesh.scale.set(.3, .3, .3);
+                   if(enemiesPool.length){
+                       tree = enemiesPool.pop();
+                   }else{
+                       if(kindOfTree === "ConeTree"){
+                           tree = new ConeTree((color));
+                       }else if(kindOfTree === "BoxTree"){
+                           tree = new BoxTree((color));
+                       }else if(kindOfTree === "ThreeConesTree"){
+                           tree = new ThreeConesTree((color));
+                       }else if(kindOfTree === "FiveConesTree"){
+                           tree = new FiveConesTree((color));
+                       }
+                       let angle = Math.PI * 3 / 2;
+                       tree.angle = angle;
+                       tree.color = color;
+                       tree.mesh.position.y = 630 * Math.sin(angle);
+                       tree.mesh.position.x = 630 * Math.cos(angle);
+                       tree.mesh.position.z = -350 + Math.random() * 700;
+                       tree.mesh.rotation.z = angle - Math.PI/2;
+                       let size = Math.max(Math.random() * 0.7, 0.3)
+                       tree.mesh.scale.set(size, size, size);
+                       this.enemiesInUse.push(tree);
+                   }
                    this.mesh.add(tree.mesh);
-                   this.enemiesInUse.push(tree);
                }
            }
 
@@ -513,70 +528,21 @@
                    enemy.mesh.rotation.z = enemy.angle - Math.PI/2;
                    if(enemy.angle > 7 * Math.PI / 2){
                        this.mesh.remove(enemy.mesh);
+                       enemy.angle = Math.PI * 3 / 2;
+                       enemy.mesh.position.y = 630 * Math.sin(enemy.angle);
+                       enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
+                       enemy.mesh.position.z = -350 + Math.random() * 700;
+                       let size = Math.max(Math.random() * 0.7, 0.3)
+                       enemy.mesh.scale.set(size, size, size);
+                       enemiesPool.push(enemy);
                    }
                }
            }
-
-
         }
 
-        let EnemiesHolder = function(){
-            this.mesh = new THREE.Object3D();
-            this.enemiesInUse = [];
-        }
-
-        EnemiesHolder.prototype.spawnEnemies = function(color, kindOfTree){
-            let tree;
-            for(let i = 0; i < level; i++){
-                if(enemiesPool.length){
-                    tree = enemiesPool.pop();
-                }else{
-                    if(kindOfTree === "ConeTree"){
-                        tree = new ConeTree((color));
-                    }else if(kindOfTree === "BoxTree"){
-                        tree = new BoxTree((color));
-                    }else if(kindOfTree === "ThreeConesTree"){
-                        tree = new ThreeConesTree((color));
-                    }else if(kindOfTree === "FiveConesTree"){
-                        tree = new FiveConesTree((color));
-                    }
-                    let angle = Math.PI * 3 / 2;
-                    tree.angle = angle;
-                    tree.color = color;
-                    tree.mesh.position.y = 630 * Math.sin(angle);
-                    tree.mesh.position.x = 630 * Math.cos(angle);
-                    tree.mesh.position.z = -350 + Math.random() * 700;
-                    tree.mesh.rotation.z = angle - Math.PI/2;
-                    let size = Math.max(Math.random() * 0.7, 0.3)
-                    tree.mesh.scale.set(size, size, size);
-                    this.enemiesInUse.push(tree);
-                }
-                this.mesh.add(tree.mesh);
-            }
-        }
-
-        EnemiesHolder.prototype.rotateEnemies = function(){
-            for(let i = 0; i < this.enemiesInUse.length; i++){
-                let enemy = this.enemiesInUse[i];
-                enemy.angle += rotateSpeed * 2;
-                enemy.mesh.position.y = 630 * Math.sin(enemy.angle) - 600;
-                enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
-                enemy.mesh.rotation.z = enemy.angle - Math.PI/2;
-                if(enemy.angle > 7 * Math.PI / 2){
-                    this.mesh.remove(enemy.mesh);
-                    enemy.angle = Math.PI * 3 / 2;
-                    enemy.mesh.position.y = 630 * Math.sin(enemy.angle);
-                    enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
-                    enemy.mesh.position.z = -350 + Math.random() * 700;
-                    let size = Math.max(Math.random() * 0.7, 0.3)
-                    enemy.mesh.scale.set(size, size, size);
-                    enemiesPool.push(enemy);
-                }
-            }
-        }
 
         function createEnemies(){
-            enemiesHolder = new EHolder();
+            enemiesHolder = new EnemiesHolder();
             scene.add(enemiesHolder.mesh)
         }
 
