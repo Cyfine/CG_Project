@@ -635,7 +635,7 @@
 
     var mousePos = {x: 0, y: 0}
 
-    function handleMousemove() {
+    function handleMousemove(event) {
         let normalizedX = -1 + (event.clientX / WIDTH) * 2;
         let normalizedY = 1 - (event.clientY / HEIGHT) * 2;
         mousePos = {x: normalizedX, y: normalizedY};
