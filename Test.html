@@ -540,7 +540,7 @@
                 let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
                 let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
-                let color = Colors.blue;
+                let color = Colors.red;
                 let size = Math.max(Math.random() * 0.7, 0.3);
                 let type = types[treeTypeIdx]
 
@@ -639,12 +639,13 @@
             this.mesh.material.color = new THREE.Color( color);
             this.mesh.material.needsUpdate = true;
             this.mesh.scale.set(scale, scale, scale);
-            let targetX = pos.x + (-1 + Math.random()*2)*50;
-            let targetY = pos.y + (-1 + Math.random()*2)*50;
+            let targetX = pos.x + (-1 + Math.random()*2)*250;
+            let targetY = pos.y + (-1 + Math.random()*2)*250;
+            let targetZ = pos.z + (-1 + Math.random()*2)*250;
             let speed = .6+Math.random()*.2;
-            TweenMax.to(this.mesh.rotation, speed, {x:Math.random()*12, y:Math.random()*12});
+            TweenMax.to(this.mesh.rotation, speed, {x:Math.random()*12, y:Math.random()*12, z:Math.random()*12});
             TweenMax.to(this.mesh.scale, speed, {x:.1, y:.1, z:.1});
-            TweenMax.to(this.mesh.position, speed, {x:targetX, y:targetY, delay:Math.random() *.1, ease:Power2.easeOut, onComplete:function(){
+            TweenMax.to(this.mesh.position, speed, {x:targetX, y:targetY, z:targetZ, delay:Math.random() *.1, ease:Power2.easeOut, onComplete:function(){
                     if(_p) _p.remove(_this.mesh);
                     _this.mesh.scale.set(1,1,1);
                     particlesPool.unshift(_this);
