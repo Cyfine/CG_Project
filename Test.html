@@ -48,6 +48,7 @@
         brownDark: 0x23190f,
         blue: 0x68c3c0,
         green: 0x24942c,
+        grey: 0xcccccc,
     };
 
     var scene,
@@ -91,6 +92,9 @@
     function resetGame() {
         game = {
             enemyDistanceTolerance: 70,
+            life: 20,
+            damage: 3,
+            status: "start"
         }
     }
 
@@ -595,6 +599,7 @@
                         if(rotateSpeed >  -basicRotateSpeed){
                             rotateSpeed -= 0.01;
                         }
+                        game.life -= game.damage;
                     }
                 }
             }
@@ -751,9 +756,20 @@
             let pos = car.scene.position.clone();
             pos.x += 10;
             pos.z += 10;
-
             if(Math.random() > 0.92){
-                particlesHolder.spawnParticles(pos, 5, Colors.brownDark, 4, "rise" );
+                let color;
+                if(game.life > 5){
+                    color = Colors.white;
+                }else if (game.life > 10){
+                    color = Colors.grey;
+                }else{
+                    color = Colors.brownDark;
+                }
+                if(game.life > 0){
+                    particlesHolder.spawnParticles(pos, Math.min(5 * (20/game.life), 10), color, Math.min(4 * (20/game.life), 8), "rise" );
+                }else if(game.life <= 0){
+                    particlesHolder.spawnParticles(pos, 10 , Colors.red, 10, "explode" );
+                }
             }
             //particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
         }
