@@ -71,6 +71,7 @@ function init() {
     testChunk();
     createAirPlane();
 
+    scene.add(new BoxTree(Colors.red).mesh)
 
     document.addEventListener('mousemove', handleMousemove, false);
 
@@ -352,8 +353,9 @@ function updateAirPlaneControl() {
 
 
     const cameraOffset = relativeCameraOffset.applyMatrix4(airPlane.mesh.matrixWorld);
-
-
+    camera.position.x = cameraOffset.x;
+    camera.position.y = cameraOffset.y;
+    camera.position.z = cameraOffset.z;
     controls.target = airPlane.mesh.position;
 
 }
@@ -395,30 +397,42 @@ function createPlane() {
 
 
 function testChunk() {
-    let chunk = new Chunk(0, 0, 1000, 0, 100, 5);
+    let chunk = new Chunk(0, 0, 1000, 0, 100, 5, 100, 0.001);
     scene.add(chunk.mesh);
 }
 
-
+/**
+ * class attributes:
+ * x, y: the chunk coordinate (not world)
+ * size: the chunk size
+ * seed: the seed for perlin noise
+ * amplify: multiplied to perlin noise, control mountain fluctuation
+ * segments: how density of triangle
+ * samplingScale: scale for mapping the plane vertex coordinate to 2d perlin noise space for sampling
+ * terrain: the plane buffer mesh
+ */
 class Chunk {
     //x and y is chunk coordinate, the chunk coordinate multiply the size is the world coordinate
-    constructor(x = 0, y = 0, size = 100, seed = 0, segments = 100, samplingScale = 0.001,
-                height = 100, showMesh) {
+    constructor(x = 0, y = 0, size = 1000, seed = 0, segments = 100, samplingScale = 5,
+                amplify = 100, treeGenerateProbability, showMesh) {
         // sampling from the noise space, and define the terrain plane
         this.mesh = new THREE.Object3D();
         this.x = x;
         this.y = y;
         this.size = size;
         this.seed = seed;
-        this.height = height;
+        this.amplify = amplify;
         this.segments = segments;
         this.samplingScale = samplingScale;
-        this.createPlane(false);
+        this.perlin = [];
+        this.treeGenerateProbability = treeGenerateProbability;
+        this.createTerrain(false);
+        this.decorateTree();
 
     }
 
 
-    createPlane(showMesh = false) {
+    createTerrain(showMesh = false) {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
         let material = new THREE.MeshPhongMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
 
@@ -427,13 +441,7 @@ class Chunk {
 
 
         this.mesh.add(planeMesh);
-        // let vertices = planeMesh.geometry.attributes.position.array;
-        // for (let i = 0; i < vertices.length; i++) {
-        //     let vertex = vertices[i];
-        //
-        //     let pnoise = noise.perlin2(vertex.x, vertex.y);
-        //     vertex.z = 25 * pnoise;
-        // }
+        this.terrain = planeMesh;
 
 
         for (let i = 0, l = plane.attributes.position.count; i < l; i++) {
@@ -443,7 +451,9 @@ class Chunk {
             const vz = noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vy / this.size + 0.5);
             noise.seed(200);
             const vz2 = noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vy / this.size + 0.5);
-            plane.attributes.position.setZ(i, (vz + vz2) * this.height);
+            const height = (vz + vz2) * this.amplify;
+            plane.attributes.position.setZ(i, height);
+            this.perlin.push(vz + vz2);
         }
 
         plane.attributes.position.needsUpdate = true;
@@ -464,7 +474,66 @@ class Chunk {
 
     }
 
+    decorateTree() {
+        for (let i = 0; i < this.terrain.geometry.attributes.position.count; i++) {
+            if (  probability(0.1)) {
+                const vx = this.terrain.geometry.attributes.position.getX(i);
+                const vy = this.terrain.geometry.attributes.position.getY(i);
+                const vz = this.terrain.geometry.attributes.position.getZ(i);
 
+                const nx = this.terrain.geometry.attributes.position.getY(i);
+                const ny = this.terrain.geometry.attributes.position.getX(i);
+                const nz = this.terrain.geometry.attributes.position.getZ(i);
+
+                let normal = new THREE.Vector3(nx, ny + 1, nz).normalize();
+
+
+                const score = mapVal(this.perlin[i], -1, 1, 0, 1);
+                let distributionIdx = fallInRange(score, [2, 1, 1, 1]) || 0
+                let treeDistribution = [
+                    [8, 1, 3, 2],
+                    [1, 8, 3, 2],
+                    [2, 1, 3, 8],
+                    [1, 1, 8, 2],
+                ];
+                console.log(distributionIdx);
+                let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
+                let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
+
+                let color = Colors.green;
+                // let size = Math.max(Math.random() * 0.007, 0.3);
+                let size = 0.02 ;
+                let type = types[treeTypeIdx]
+                let tree = treeFactory(type, Colors.green);
+                tree.mesh.position.y = vz;
+                tree.mesh.position.x = vx;
+                tree.mesh.position.z = -vy;
+                tree.color = color;
+                tree.mesh.scale.set(size, size, size);
+                tree.type = type;
+                tree.mesh.lookAt(normal);
+                this.mesh.add(tree.mesh);
+
+            }
+
+
+        }
+    }
+
+
+}
+
+function treeFactory(type, color) {
+    switch (type) {
+        case "BoxTree":
+            return new BoxTree(color);
+        case "ConeTree":
+            return new ConeTree(color);
+        case "ThreeConesTree":
+            return new ThreeConesTree(color);
+        case "FiveConesTree":
+            return new FiveConesTree(color);
+    }
 }
 
 function createAirPlane() {
@@ -486,12 +555,11 @@ class AirPlane {
         var matCabin = new THREE.MeshPhongMaterial({color: Colors.blue, shading: THREE.FlatShading});
 
 
-
-
         var cabin = new THREE.Mesh(geomCabin, matCabin);
         cabin.castShadow = true;
         cabin.receiveShadow = true;
         this.mesh.add(cabin);
+
 
         // Engine
 
@@ -515,13 +583,21 @@ class AirPlane {
 
         // Wings
 
-        var geomSideWing = new THREE.BoxGeometry(120, 5, 30, 1, 1, 1);
+        var geomSideWing = new THREE.BoxGeometry(200, 5, 30, 1, 1, 1);
         var matSideWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading});
         var sideWing = new THREE.Mesh(geomSideWing, matSideWing);
         sideWing.position.set(0, 15, 0);
         sideWing.castShadow = true;
         sideWing.receiveShadow = true;
         this.mesh.add(sideWing);
+
+        var geombackWing = new THREE.BoxGeometry(80, 5, 20, 1, 1, 1);
+        var matbackWing = new THREE.MeshPhongMaterial({color: Colors.pink, shading: THREE.FlatShading});
+        var backWing = new THREE.Mesh(geombackWing, matbackWing);
+        backWing.position.set(0, 15, 40);
+        backWing.castShadow = true;
+        backWing.receiveShadow = true;
+        this.mesh.add(backWing);
 
         var geomWindshield = new THREE.BoxGeometry(20, 15, 3, 1, 1, 1);
         var matWindshield = new THREE.MeshPhongMaterial({
@@ -532,7 +608,7 @@ class AirPlane {
         });
         ;
         var windshield = new THREE.Mesh(geomWindshield, matWindshield);
-        windshield.position.set(5, 27, -5);
+        windshield.position.set(0, 27, -5);
 
         windshield.castShadow = true;
         windshield.receiveShadow = true;
@@ -615,7 +691,7 @@ class AirPlane {
 
     }
 
-    updatePropeller(){
+    updatePropeller() {
         this.propeller.rotation.z += 0.3;
     }
 

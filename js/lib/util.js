@@ -62,6 +62,10 @@ function fallInRange(val, weight){
     }
 }
 
+function probability(p) {
+    return Math.random() > (1 - p);
+}
+
 
 
 
