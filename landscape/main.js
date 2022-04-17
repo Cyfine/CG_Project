@@ -16,13 +16,16 @@ var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
     renderer, container, controls, enemiesHolder;
 //==================== landscape control ==========================
-let chunkSize = 1000;
-let chunkSegments = 50;
-let landHeight = 100;
+let chunkSize = 500;
+let chunkSegments = 25;
+let landHeight = 200;
 let treeGenerate = 0.02;
 let seed = 0;
-let samplingScale = 5;
+let samplingScale = 1;
+let loadDistance =3 ;
+let destructionDist = 4;
 let chunkLoader;
+
 //==================== airplane control ==========================
 let airPlane;
 const clock = new THREE.Clock();
@@ -76,7 +79,7 @@ function init() {
     createLights();
     // testChunk();
     createAirPlane();
-    chunkLoader = new ChunkLoader();
+    chunkLoader = new ChunkLoader(loadDistance);
 
     // let test = new BoxTree(Colors.red).mesh;
 
@@ -108,7 +111,7 @@ function createScene() {
 
     // Add a fog effect to the scene; same color as the
     // background color used in the style sheet
-    scene.fog = new THREE.Fog(0xF5986E, 100, 950);
+    scene.fog = new THREE.Fog(0xF5986E, 100, 1500);
 
     // Create the camera
     aspectRatio = WIDTH / HEIGHT;
@@ -414,6 +417,14 @@ class ChunkLoader {
     // call in animation loop
     generateChunk() {
         let currentChunk = this.getCurrentChunk();
+
+        for (const [key, chunk] of Object.entries(this.chunks)) {
+            if(this.dist(chunk.x, chunk.z, currentChunk[0], currentChunk[1])> destructionDist){
+                delete this.chunks[key];
+                chunk.destroy();
+            }
+        }
+
         if (this.key(currentChunk[0], currentChunk[1]) === this.key(this.lastVisitChunk[0], this.lastVisitChunk[1])) {
             return;
         }
@@ -422,15 +433,16 @@ class ChunkLoader {
         let cx = currentChunk[0];
         let cz = currentChunk[1];
 
-
+        let cnt = 0 ;
         // NE
         for (let i = 0; i < this.loadDistance + 1; i++) {
             for (let j = 0; j < this.loadDistance + 1; j++) {
-                if (this.chunks[this.key(cx + i, cz + j)] === undefined) {
-                    console.log("key " +  this.key(cx + i, cz + j))
-                    let chunk = new Chunk(cx + i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                let chunk = this.chunks[this.key(cx + i, cz + j)];
+                if (chunk === undefined) {
+                    chunk = new Chunk(cx + i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx + i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
+                    cnt ++ ;
                 }
             }
         }
@@ -438,10 +450,12 @@ class ChunkLoader {
         // SE
         for (let i = 0; i < this.loadDistance + 1; i++) {
             for (let j = 1; j <= this.loadDistance; j++) {
-                if (this.chunks[this.key(cx + i, cz - j)] === undefined) {
-                    let chunk = new Chunk(cx + i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                let chunk = this.chunks[this.key(cx + i, cz - j)];
+                if (chunk === undefined) {
+                    chunk = new Chunk(cx + i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx + i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
+                    cnt ++ ;
                 }
             }
         }
@@ -449,10 +463,12 @@ class ChunkLoader {
         //NW
         for (let i = 1; i <= this.loadDistance; i++) {
             for (let j = 0; j < this.loadDistance + 1; j++) {
-                if (this.chunks[this.key(cx - i, cz + j)] === undefined) {
-                    let chunk = new Chunk(cx - i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                let chunk = this.chunks[this.key(cx - i, cz + j)];
+                if (chunk === undefined) {
+                    chunk = new Chunk(cx - i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx - i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
+                    cnt ++ ;
                 }
             }
         }
@@ -460,16 +476,30 @@ class ChunkLoader {
         //SW
         for (let i = 1; i <= this.loadDistance; i++) {
             for (let j = 1; j <= this.loadDistance; j++) {
-                if (this.chunks[this.key(cx - i, cz - j)] === undefined) {
+                let chunk = this.chunks[this.key(cx - i, cz - j)]
+                if (chunk === undefined) {
                     let chunk = new Chunk(cx - i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx - i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
+                    cnt ++ ;
                 }
             }
         }
 
+        console.log(cnt)
+
 
         this.lastVisitChunk = currentChunk;
+    }
+
+    cleanOldChunks() {
+        for (let i = 0; i < this.chunks; i++) {
+
+        }
+    }
+
+    dist(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }
 
 
@@ -517,6 +547,7 @@ class Chunk {
         this.samplingScale = samplingScale;
         this.perlin = [];
         this.treeGenerateProbability = treeGenerateProbability;
+        this.waterHeight = -amplify/2;
         this.createTerrain(false);
         this.decorateTree();
 
@@ -525,7 +556,7 @@ class Chunk {
 
     createTerrain(showMesh = false) {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
-        let material = new THREE.MeshLambertMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
+        let material = new THREE.MeshPhysicalMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
         const planeMesh = new THREE.Mesh(plane, material);
 
         const xTranslation = this.x * this.size + this.size / 2;
@@ -602,7 +633,7 @@ class Chunk {
 
                 let color = Colors.green;
                 // let size = Math.max(Math.random() * 0.007, 0.3);
-                let size = 0.03 + mapVal(Math.random(), 0, 1, -0.008, 0.008);
+                let size = 0.06 + mapVal(Math.random(), 0, 1, -0.008, 0.008);
                 let type = types[treeTypeIdx]
                 let tree = treeFactory(type, Colors.green);
 
@@ -612,7 +643,7 @@ class Chunk {
 
 
                 tree.color = color;
-                tree.mesh.scale.set(.1, 0.1, 0.1);
+                tree.mesh.scale.set(size, size, size);
                 tree.type = type;
                 tree.mesh.position.y += 150 * size;
 
@@ -628,8 +659,11 @@ class Chunk {
         }
     }
 
+
+
     // remove the chunk and destroy all its geometries
     destroy() {
+        console.log("Destroy chunk: " + this.x + "," + this.z)
         scene.remove(this.mesh)
         this.mesh.traverse((obj) => {
             if (obj && obj.geometry && obj.material) {
@@ -638,11 +672,13 @@ class Chunk {
             }
         })
     }
+
+
+
+
 }
 
-function destroyMesh(obj) {
 
-}
 
 function treeFactory(type, color) {
     switch (type) {
