@@ -17,11 +17,11 @@ var scene,
     renderer, container, controls, enemiesHolder;
 //==================== landscape control ==========================
 let chunkSize = 1000;
-let chunkSegments = 15;
+let chunkSegments = 50;
 let landHeight = 100;
 let treeGenerate = 0.02;
-let seed = 0 ;
-let samplingScale  = 5;
+let seed = 0;
+let samplingScale = 5;
 let chunkLoader;
 //==================== airplane control ==========================
 let airPlane;
@@ -159,7 +159,7 @@ function createScene() {
     // controls = new THREE.TrackballControls(camera);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     // controls = new THREE.TrackballControls(camera, renderer.domElement);
-
+    controls.enableDamping = true;
 
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
@@ -228,11 +228,11 @@ let BoxTree = function (color) {
         color: color,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
     let stunk = new THREE.MeshPhongMaterial({
         color: Colors.brown,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
     let geo = new THREE.BoxGeometry(100, 350, 100);
     let m = new THREE.Mesh(geo, leaf);
@@ -251,11 +251,11 @@ let ConeTree = function (color) {
         color: color,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
     let stunk = new THREE.MeshPhongMaterial({
         color: Colors.brown,
-        shading: THREE.FlatShading,
+        flatShading: true,
     });
     let geo = new THREE.ConeGeometry(100, 350, 4);
     let m = new THREE.Mesh(geo, leaf);
@@ -273,12 +273,12 @@ let ThreeConesTree = function (color) {
         color: color,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
 
     let stunk = new THREE.MeshPhongMaterial({
         color: Colors.brown,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
 
     for (let i = 0; i < 3; i++) {
@@ -300,12 +300,12 @@ let FiveConesTree = function (color) {
         color: color,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
 
     let stunk = new THREE.MeshPhongMaterial({
         color: Colors.brown,
-        shading: THREE.FlatShading,
+        flatShading: true
     });
 
     for (let i = 0; i < 5; i++) {
@@ -398,10 +398,10 @@ function testChunk() {
 
 
 class ChunkLoader {
-    constructor(loadDistance = 1, destroyDistance=5) {
+    constructor(loadDistance = 1, destroyDistance = 5) {
         this.loadDistance = loadDistance;
         this.chunks = {};
-        this.lastVisitChunk =  [NaN, NaN];
+        this.lastVisitChunk = [NaN, NaN];
 
     }
 
@@ -413,45 +413,45 @@ class ChunkLoader {
 
     // call in animation loop
     generateChunk() {
-        if(this.key(this.getCurrentChunk())  === this.key(this.lastVisitChunk)){
+        let currentChunk = this.getCurrentChunk();
+        if (this.key(currentChunk[0], currentChunk[1]) === this.key(this.lastVisitChunk[0], this.lastVisitChunk[1])) {
             return;
         }
 
-        let currentChunk = this.getCurrentChunk();
+
         let cx = currentChunk[0];
         let cz = currentChunk[1];
 
 
         // NE
-        let chunk = new Chunk(0, 0, chunkSize , seed, chunkSegments, samplingScale, landHeight,treeGenerate);
-        scene.add(chunk.mesh)
         for (let i = 0; i < this.loadDistance + 1; i++) {
             for (let j = 0; j < this.loadDistance + 1; j++) {
-                if(this.chunks[this.key(cx+i, cz+j)] === undefined){
-                    let chunk = new Chunk(cx+i, cz+j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
-                    this.chunks[this.key(cx+i, cz+j)] = chunk;
+                if (this.chunks[this.key(cx + i, cz + j)] === undefined) {
+                    console.log("key " +  this.key(cx + i, cz + j))
+                    let chunk = new Chunk(cx + i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                    this.chunks[this.key(cx + i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
                 }
             }
         }
 
-
+        // SE
         for (let i = 0; i < this.loadDistance + 1; i++) {
-            for (let j = 1; j <= this.loadDistance ; j++) {
-                if(this.chunks[this.key(cx+i, cz-j)] === undefined){
-                    let chunk = new Chunk(cx+i, cz-j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
-                    this.chunks[this.key(cx+i, cz-j)] = chunk;
+            for (let j = 1; j <= this.loadDistance; j++) {
+                if (this.chunks[this.key(cx + i, cz - j)] === undefined) {
+                    let chunk = new Chunk(cx + i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                    this.chunks[this.key(cx + i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
                 }
             }
         }
-        //
-        // //NW
+
+        //NW
         for (let i = 1; i <= this.loadDistance; i++) {
             for (let j = 0; j < this.loadDistance + 1; j++) {
-                if(this.chunks[this.key(cx-i, cz+j)] === undefined){
-                    let chunk = new Chunk(cx-i, cz+j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
-                    this.chunks[this.key(cx-i, cz+j)] = chunk;
+                if (this.chunks[this.key(cx - i, cz + j)] === undefined) {
+                    let chunk = new Chunk(cx - i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                    this.chunks[this.key(cx - i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
                 }
             }
@@ -459,38 +459,32 @@ class ChunkLoader {
 
         //SW
         for (let i = 1; i <= this.loadDistance; i++) {
-            for (let j = 1; j <= this.loadDistance ; j++) {
-                if(this.chunks[this.key(cx-i, cz-j)] === undefined){
-                    let chunk = new Chunk(cx-i, cz-j, chunkSize,  seed, chunkSegments, samplingScale, landHeight,treeGenerate);
-                    this.chunks[this.key(cx-i, cz-j)] = chunk;
+            for (let j = 1; j <= this.loadDistance; j++) {
+                if (this.chunks[this.key(cx - i, cz - j)] === undefined) {
+                    let chunk = new Chunk(cx - i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
+                    this.chunks[this.key(cx - i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
                 }
             }
         }
 
 
-
-
-
         this.lastVisitChunk = currentChunk;
     }
 
 
-
-
-    key(x,z){
-        return "" + x +","+ z;
+    key(x, z) {
+        return "" + x + "," + z;
     }
 
 
-
     setChunk(x, z, chunk) {
-        const key = "" + x +","+ z;
+        const key = "" + x + "," + z;
         this.chunks[key] = chunk;
     }
 
     getChunk(x, z) {
-        const key = "" + x +","+ z;
+        const key = "" + x + "," + z;
         return this.chunks[key];
     }
 
@@ -512,6 +506,7 @@ class Chunk {
     constructor(x = 0, z = 0, size = 1000, seed = 0, segments = 100, samplingScale = 5,
                 amplify = 100, treeGenerateProbability, showMesh) {
         // sampling from the noise space, and define the terrain plane
+        console.log("Generate Chunk: " + x + ", " + z);
         this.mesh = new THREE.Object3D();
         this.x = x;
         this.z = z;
@@ -543,7 +538,6 @@ class Chunk {
             const vy = plane.attributes.position.getY(i) + zTranslation;
             noise.seed(this.seed);
             const vz = noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vy / this.size + 0.5);
-            noise.seed(200);
             const vz2 = noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vy / this.size + 0.5);
             const height = (vz + vz2) * this.amplify;
             plane.attributes.position.setZ(i, height);
@@ -587,9 +581,9 @@ class Chunk {
                 const nz = this.terrain.geometry.attributes.normal.getZ(i);
 
                 let normal = new THREE.Vector3(nx, ny, nz)
-                let pos = new THREE.Vector3(vx, vy, vz);
-                console.log(normal)
-                console.log(pos)
+                // let pos = new THREE.Vector3(vx, vy, vz);
+                // console.log(normal)
+                // console.log(pos)
 
                 // let rotationMat = new THREE.Matrix3;
 
@@ -602,7 +596,7 @@ class Chunk {
                     [2, 1, 3, 8],
                     [1, 1, 8, 2],
                 ];
-                console.log(distributionIdx);
+                // console.log(distributionIdx);
                 let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
                 let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
@@ -624,7 +618,7 @@ class Chunk {
 
                 //combination of the surface normal and a vertical vector is the direction of the tree
                 let look = tree.mesh.localToWorld(new THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
-                console.log(normal)
+                // console.log(normal)
                 tree.mesh.lookAt(look);
                 this.mesh.add(tree.mesh);
 
@@ -680,7 +674,7 @@ class AirPlane {
         // Cabin
 
         var geomCabin = new THREE.BoxGeometry(50, 50, 80, 1, 1, 1);
-        var matCabin = new THREE.MeshPhongMaterial({color: Colors.blue, shading: THREE.FlatShading});
+        var matCabin = new THREE.MeshPhongMaterial({color: Colors.blue, flatShading: true});
 
 
         var cabin = new THREE.Mesh(geomCabin, matCabin);
@@ -692,7 +686,7 @@ class AirPlane {
         // Engine
 
         var geomEngine = new THREE.BoxGeometry(50, 50, 20, 1, 1, 1);
-        var matEngine = new THREE.MeshPhongMaterial({color: Colors.white, shading: THREE.FlatShading});
+        var matEngine = new THREE.MeshPhongMaterial({color: Colors.white, flatShading: true});
         var engine = new THREE.Mesh(geomEngine, matEngine);
         engine.position.z = -50;
         engine.castShadow = true;
@@ -702,7 +696,7 @@ class AirPlane {
         // Tail Plane
 
         var geomTailPlane = new THREE.BoxGeometry(5, 20, 15, 1, 1, 1);
-        var matTailPlane = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading});
+        var matTailPlane = new THREE.MeshPhongMaterial({color: Colors.red, flatShading: true});
         var tailPlane = new THREE.Mesh(geomTailPlane, matTailPlane);
         tailPlane.position.set(0, 20, 40);
         tailPlane.castShadow = true;
@@ -712,7 +706,7 @@ class AirPlane {
         // Wings
 
         var geomSideWing = new THREE.BoxGeometry(200, 5, 30, 1, 1, 1);
-        var matSideWing = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading});
+        var matSideWing = new THREE.MeshPhongMaterial({color: Colors.red, flatShading: true});
         var sideWing = new THREE.Mesh(geomSideWing, matSideWing);
         sideWing.position.set(0, 15, 0);
         sideWing.castShadow = true;
@@ -720,7 +714,7 @@ class AirPlane {
         this.mesh.add(sideWing);
 
         var geombackWing = new THREE.BoxGeometry(80, 5, 20, 1, 1, 1);
-        var matbackWing = new THREE.MeshPhongMaterial({color: Colors.pink, shading: THREE.FlatShading});
+        var matbackWing = new THREE.MeshPhongMaterial({color: Colors.pink, flatShading: true});
         var backWing = new THREE.Mesh(geombackWing, matbackWing);
         backWing.position.set(0, 15, 40);
         backWing.castShadow = true;
@@ -732,7 +726,7 @@ class AirPlane {
             color: Colors.white,
             transparent: true,
             opacity: .3,
-            shading: THREE.FlatShading
+            flatShading: true
         });
         ;
         var windshield = new THREE.Mesh(geomWindshield, matWindshield);
@@ -746,14 +740,14 @@ class AirPlane {
         var geomPropeller = new THREE.BoxGeometry(10, 10, 20, 1, 1, 1);
 
 
-        var matPropeller = new THREE.MeshPhongMaterial({color: Colors.brown, shading: THREE.FlatShading});
+        var matPropeller = new THREE.MeshPhongMaterial({color: Colors.brown, flatShading: true});
         this.propeller = new THREE.Mesh(geomPropeller, matPropeller);
 
         this.propeller.castShadow = true;
         this.propeller.receiveShadow = true;
 
         var geomBlade = new THREE.BoxGeometry(10, 80, 1, 1, 1, 1);
-        var matBlade = new THREE.MeshPhongMaterial({color: Colors.brownDark, shading: THREE.FlatShading});
+        var matBlade = new THREE.MeshPhongMaterial({color: Colors.brownDark, flatShading: true});
         var blade1 = new THREE.Mesh(geomBlade, matBlade);
         blade1.position.set(0, 0, -8);
 
@@ -772,18 +766,18 @@ class AirPlane {
         this.mesh.add(this.propeller);
 
         var wheelProtecGeom = new THREE.BoxGeometry(10, 15, 30, 1, 1, 1);
-        var wheelProtecMat = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading});
+        var wheelProtecMat = new THREE.MeshPhongMaterial({color: Colors.red, flatShading: true});
         var wheelProtecR = new THREE.Mesh(wheelProtecGeom, wheelProtecMat);
         wheelProtecR.position.set(25, -20, -25);
         this.mesh.add(wheelProtecR);
 
         var wheelTireGeom = new THREE.BoxGeometry(4, 24, 24);
-        var wheelTireMat = new THREE.MeshPhongMaterial({color: Colors.brownDark, shading: THREE.FlatShading});
+        var wheelTireMat = new THREE.MeshPhongMaterial({color: Colors.brownDark, flatShading: true});
         var wheelTireR = new THREE.Mesh(wheelTireGeom, wheelTireMat);
         wheelTireR.position.set(25, -28, -25);
 
         var wheelAxisGeom = new THREE.BoxGeometry(6, 10, 10);
-        var wheelAxisMat = new THREE.MeshPhongMaterial({color: Colors.brown, shading: THREE.FlatShading});
+        var wheelAxisMat = new THREE.MeshPhongMaterial({color: Colors.brown, flatShading: true});
         var wheelAxis = new THREE.Mesh(wheelAxisGeom, wheelAxisMat);
         wheelTireR.add(wheelAxis);
 
@@ -803,8 +797,8 @@ class AirPlane {
         this.mesh.add(wheelTireB);
 
         var suspensionGeom = new THREE.BoxGeometry(4, 20, 4);
-        suspensionGeom.applyMatrix(new THREE.Matrix4().makeTranslation(0, 10, 0))
-        var suspensionMat = new THREE.MeshPhongMaterial({color: Colors.red, shading: THREE.FlatShading});
+        suspensionGeom.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 10, 0))
+        var suspensionMat = new THREE.MeshPhongMaterial({color: Colors.red, flatShading: true});
         var suspension = new THREE.Mesh(suspensionGeom, suspensionMat);
         suspension.position.set(0, -5, 35);
         suspension.rotation.x = -.3;
