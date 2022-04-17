@@ -18,13 +18,29 @@ var scene,
 //==================== landscape control ==========================
 let chunkSize = 500;
 let chunkSegments = 25;
-let landHeight = 200;
-let treeGenerate = 0.02;
+let landHeight = 300;
+let treeGenerate = 0.04;
 let seed = 0;
 let samplingScale = 1;
-let loadDistance =3 ;
-let destructionDist = 4;
+let loadDistance = 3;
+let destructionDist = 6;
 let chunkLoader;
+
+const textureLoader = new THREE.TextureLoader();
+const waterBaseColor = textureLoader.load("./textures/water/Water_002_COLOR.jpg");
+const waterNormalMap = textureLoader.load("./textures/water/Water_002_NORM.jpg");
+const waterHeightMap = textureLoader.load("./textures/water/Water_002_DISP.png");
+const waterRoughness = textureLoader.load("./textures/water/Water_002_ROUGH.jpg");
+const waterAmbientOcclusion = textureLoader.load("./textures/water/Water_002_OCC.jpg");
+
+
+let waterMaterial = new THREE.MeshStandardMaterial({
+    map: waterBaseColor,
+    normalMap: waterNormalMap,
+    displacementMap: waterHeightMap, displacementScale: 0.01,
+    roughnessMap: waterRoughness, roughness: 0,
+    aoMap: waterAmbientOcclusion
+});
 
 //==================== airplane control ==========================
 let airPlane;
@@ -383,19 +399,22 @@ function loop() {
 
     chunkLoader.generateChunk();
 
+    // testChunkInst.updateWaterSurface()
 
     renderer.render(scene, camera);
 
     // call the loop function again
+    // testChunkInst.water.geometry.attributes.position.needsUpdate = true;
     requestAnimationFrame(loop);
 }
 
-
+let testChunkInst ;
 function testChunk() {
     let chunk = new Chunk(0, 0, 1000, 0, 60, 5, 100, 0.02);
     scene.add(chunk.mesh);
     let chunk1 = new Chunk(-1, 0, 1000, 0, 60, 5, 100, 0.02);
-    scene.add(chunk1.mesh)
+    scene.add(chunk1.mesh) ;
+    testChunkInst = chunk;
     // chunk.destroy();
 }
 
@@ -419,10 +438,13 @@ class ChunkLoader {
         let currentChunk = this.getCurrentChunk();
 
         for (const [key, chunk] of Object.entries(this.chunks)) {
-            if(this.dist(chunk.x, chunk.z, currentChunk[0], currentChunk[1])> destructionDist){
+            if (this.dist(chunk.x, chunk.z, currentChunk[0], currentChunk[1]) > destructionDist) {
                 delete this.chunks[key];
                 chunk.destroy();
             }
+            // else{
+            //     chunk.updateWaterSurface();
+            // }
         }
 
         if (this.key(currentChunk[0], currentChunk[1]) === this.key(this.lastVisitChunk[0], this.lastVisitChunk[1])) {
@@ -433,7 +455,7 @@ class ChunkLoader {
         let cx = currentChunk[0];
         let cz = currentChunk[1];
 
-        let cnt = 0 ;
+        let cnt = 0;
         // NE
         for (let i = 0; i < this.loadDistance + 1; i++) {
             for (let j = 0; j < this.loadDistance + 1; j++) {
@@ -442,7 +464,7 @@ class ChunkLoader {
                     chunk = new Chunk(cx + i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx + i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
-                    cnt ++ ;
+                    cnt++;
                 }
             }
         }
@@ -455,7 +477,7 @@ class ChunkLoader {
                     chunk = new Chunk(cx + i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx + i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
-                    cnt ++ ;
+                    cnt++;
                 }
             }
         }
@@ -468,7 +490,7 @@ class ChunkLoader {
                     chunk = new Chunk(cx - i, cz + j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx - i, cz + j)] = chunk;
                     scene.add(chunk.mesh);
-                    cnt ++ ;
+                    cnt++;
                 }
             }
         }
@@ -481,7 +503,7 @@ class ChunkLoader {
                     let chunk = new Chunk(cx - i, cz - j, chunkSize, seed, chunkSegments, samplingScale, landHeight, treeGenerate);
                     this.chunks[this.key(cx - i, cz - j)] = chunk;
                     scene.add(chunk.mesh);
-                    cnt ++ ;
+                    cnt++;
                 }
             }
         }
@@ -492,11 +514,6 @@ class ChunkLoader {
         this.lastVisitChunk = currentChunk;
     }
 
-    cleanOldChunks() {
-        for (let i = 0; i < this.chunks; i++) {
-
-        }
-    }
 
     dist(x1, y1, x2, y2) {
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
@@ -547,22 +564,29 @@ class Chunk {
         this.samplingScale = samplingScale;
         this.perlin = [];
         this.treeGenerateProbability = treeGenerateProbability;
-        this.waterHeight = -amplify/2;
+        // this.waterHeight = -amplify / 2;
+        this.waterHeight = -20;
+
+
+        this.waterDamping = 20;
+
         this.createTerrain(false);
         this.decorateTree();
-
+        // this.createWater2();
+        this.createWater();
     }
 
 
     createTerrain(showMesh = false) {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
-        let material = new THREE.MeshPhysicalMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
+        let material = new THREE.MeshLambertMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
         const planeMesh = new THREE.Mesh(plane, material);
 
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
         planeMesh.position.x = xTranslation;
         planeMesh.position.z = zTranslation;
+
 
         for (let i = 0, l = plane.attributes.position.count; i < l; i++) {
             const vx = plane.attributes.position.getX(i) + xTranslation;
@@ -574,13 +598,13 @@ class Chunk {
             plane.attributes.position.setZ(i, height);
             this.perlin.push(vz + vz2);
         }
-
+        this.mesh.add(planeMesh);
         //directly apply rotation to the object vertex
         plane.rotateX(Math.PI / 2)
         plane.computeVertexNormals();
         plane.attributes.position.needsUpdate = true;
         this.terrain = planeMesh;
-        this.mesh.add(planeMesh);
+
 
         if (showMesh) {
             const wireframe = new THREE.WireframeGeometry(plane);
@@ -593,19 +617,26 @@ class Chunk {
             this.mesh.add(line);
         }
 
+
     }
+
 
     decorateTree() {
         let treeAmt = 0;
         for (let i = 0; i < this.terrain.geometry.attributes.position.count; i++) {
+            const vy = this.terrain.geometry.attributes.position.getY(i);
+
+            if (vy < this.waterHeight + 30) {
+                continue;
+            }
             if (probability(this.treeGenerateProbability)) {
                 treeAmt += 3;
             }
             if (treeAmt > 0) {
                 treeAmt -= 1;
                 const vx = this.terrain.geometry.attributes.position.getX(i);
-                const vy = this.terrain.geometry.attributes.position.getY(i);
                 const vz = this.terrain.geometry.attributes.position.getZ(i);
+
 
                 const nx = this.terrain.geometry.attributes.normal.getX(i);
                 const ny = this.terrain.geometry.attributes.normal.getY(i);
@@ -660,6 +691,101 @@ class Chunk {
     }
 
 
+    createWaterXXX() {
+        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 2, this.segments / 2);
+        let water = new THREE.Water(plane, {
+            color: '#ffffff',
+            scale: 1,
+            flowDirection: new THREE.Vector2(1, 1),
+            // textureWidth:1024,
+            // textureHeight:1024,
+        });
+
+        water.rotation.x = -0.5 * Math.PI;
+        const xTranslation = this.x * this.size + this.size / 2;
+        const zTranslation = this.z * this.size + this.size / 2;
+        water.position.x = xTranslation;
+        water.position.z = zTranslation;
+        water.position.y = -10
+        this.mesh.add(water);
+    }
+
+
+    createWater() {
+
+
+        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
+        let material = new THREE.MeshPhongMaterial({
+            color: 0x197FF,
+            side: THREE.DoubleSide,
+            shininess: 60,
+            opacity: 0.5
+        });
+        let waterMesh = new THREE.Mesh(plane, material);
+        plane.rotateX(-Math.PI / 2)
+        const xTranslation = this.x * this.size + this.size / 2;
+        const zTranslation = this.z * this.size + this.size / 2;
+
+        waterMesh.position.x = xTranslation;
+        waterMesh.position.z = zTranslation;
+        waterMesh.position.y = this.waterHeight;
+        this.water = waterMesh;
+        this.mesh.add(waterMesh)
+    }
+
+    createWater2() {
+        // const textureLoader = new THREE.TextureLoader();
+
+        // const waterBaseColor = textureLoader.load("./textures/water/Water_002_COLOR.jpg");
+        // const waterNormalMap = textureLoader.load("./textures/water/Water_002_NORM.jpg");
+        // const waterHeightMap = textureLoader.load("./textures/water/Water_002_DISP.png");
+        // const waterRoughness = textureLoader.load("./textures/water/Water_002_ROUGH.jpg");
+        // const waterAmbientOcclusion = textureLoader.load("./textures/water/Water_002_OCC.jpg");
+        //
+        //
+        // let material = new THREE.MeshStandardMaterial({
+        //         map: waterBaseColor,
+        //         normalMap: waterNormalMap,
+        //         displacementMap: waterHeightMap, displacementScale: 0.01,
+        //         roughnessMap: waterRoughness, roughness: 0,
+        //         aoMap: waterAmbientOcclusion
+        //     });
+        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
+
+
+        let waterMesh = new THREE.Mesh(plane, waterMaterial);
+        plane.rotateX(-Math.PI / 2)
+        const xTranslation = this.x * this.size + this.size / 2;
+        const zTranslation = this.z * this.size + this.size / 2;
+
+        waterMesh.position.x = xTranslation;
+        waterMesh.position.z = zTranslation;
+        waterMesh.position.y = this.waterHeight;
+        this.water = waterMesh;
+        this.mesh.add(waterMesh)
+    }
+
+    updateWaterSurface() {
+        const now_slow = Date.now() / 400;
+        for (let i = 0; i < this.water.geometry.attributes.position.count; i++) {
+
+            const y = this.water.geometry.attributes.position.getY(i);
+            const x = this.water.geometry.attributes.position.getX(i);
+            // const vz = this.water.geometry.attributes.position.getZ(i);
+
+            const xangle = x + now_slow
+            const xsin = Math.sin(xangle) * this.waterDamping;
+            const yangle = y + now_slow
+            const ycos = Math.cos(yangle) * this.waterDamping;
+
+
+            this.water.geometry.attributes.position.setZ(i, xsin + ycos);
+
+        }
+        this.water.geometry.computeVertexNormals();
+        this.water.geometry.attributes.position.needsUpdate = true;
+    }
+
 
     // remove the chunk and destroy all its geometries
     destroy() {
@@ -671,13 +797,11 @@ class Chunk {
                 obj.material.dispose();
             }
         })
+
     }
 
 
-
-
 }
-
 
 
 function treeFactory(type, color) {
