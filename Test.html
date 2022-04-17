@@ -588,8 +588,9 @@
                     let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
                     let d = diffPos.length();
                     if (d <= game.enemyDistanceTolerance) {
-                        console.log(enemy.mesh.position);
-                        particlesHolder.spawnParticles(enemy.mesh.position.clone(), 10, enemy.color, 15);
+                        //let size = Math.max(Math.random() * 0.7, 0.3);
+                        console.log(enemy.mesh.scale.x/0.7);
+                        particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20);
                         this.mesh.remove(enemy.mesh);
                         this.enemiesPool.push(enemy);
                         enemy.use = false;
@@ -617,7 +618,9 @@
             } else if (type === "FiveConesTree") {
                 enemy = new FiveConesTree((color));
             }
-            if (enemy) enemy.mesh.scale.set(size, size, size);
+            if (enemy) {
+                enemy.mesh.scale.set(size, size, size);
+            }
             return enemy;
         }
     }
