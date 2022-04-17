@@ -16,6 +16,13 @@ var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
     renderer, container, controls, enemiesHolder;
 //==================== landscape control ==========================
+let chunkSize = 1000;
+let chunkSegments = 15;
+let landHeight = 100;
+let treeGenerate = 0.02;
+let seed = 0 ;
+let samplingScale  = 5;
+let chunkLoader;
 //==================== airplane control ==========================
 let airPlane;
 const clock = new THREE.Clock();
@@ -66,12 +73,17 @@ function init() {
     createScene();
     noise.seed(Math.random());
     addHelpers();
-
     createLights();
-    testChunk();
+    // testChunk();
     createAirPlane();
+    chunkLoader = new ChunkLoader();
 
-    scene.add(new BoxTree(Colors.red).mesh)
+    // let test = new BoxTree(Colors.red).mesh;
+
+    // y: x axis direction
+    //
+    // test.lookAt(new THREE.Vector3(0, -100, 0))
+    // scene.add(test)
 
     document.addEventListener('mousemove', handleMousemove, false);
 
@@ -366,6 +378,8 @@ function loop() {
     // render the scene
     updateAirPlaneControl();
 
+    chunkLoader.generateChunk();
+
 
     renderer.render(scene, camera);
 
@@ -374,31 +388,113 @@ function loop() {
 }
 
 
-function createPlane() {
-    const geometry = new THREE.BufferGeometry();
-// create a simple square shape. We duplicate the top left and bottom right
-// vertices because each vertex needs to appear once per triangle.
-    const vertices = new Float32Array([
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
-
-        1.0, 1.0, 1.0,
-        -1.0, 1.0, 1.0,
-        -1.0, -1.0, 1.0
-    ]);
-
-// itemSize = 3 because there are 3 values (components) per vertex
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    const material = new THREE.MeshBasicMaterial({color: 0xff0000});
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh)
+function testChunk() {
+    let chunk = new Chunk(0, 0, 1000, 0, 60, 5, 100, 0.02);
+    scene.add(chunk.mesh);
+    let chunk1 = new Chunk(-1, 0, 1000, 0, 60, 5, 100, 0.02);
+    scene.add(chunk1.mesh)
+    // chunk.destroy();
 }
 
 
-function testChunk() {
-    let chunk = new Chunk(0, 0, 1000, 0, 100, 5, 100, 0.001);
-    scene.add(chunk.mesh);
+class ChunkLoader {
+    constructor(loadDistance = 1, destroyDistance=5) {
+        this.loadDistance = loadDistance;
+        this.chunks = {};
+        this.lastVisitChunk =  [NaN, NaN];
+
+    }
+
+    getCurrentChunk() {
+        let cx = Math.round(camera.position.x / chunkSize);
+        let cz = Math.round(camera.position.z / chunkSize);
+        return [cx, cz];
+    }
+
+    // call in animation loop
+    generateChunk() {
+        if(this.key(this.getCurrentChunk())  === this.key(this.lastVisitChunk)){
+            return;
+        }
+
+        let currentChunk = this.getCurrentChunk();
+        let cx = currentChunk[0];
+        let cz = currentChunk[1];
+
+
+        // NE
+        let chunk = new Chunk(0, 0, chunkSize , seed, chunkSegments, samplingScale, landHeight,treeGenerate);
+        scene.add(chunk.mesh)
+        for (let i = 0; i < this.loadDistance + 1; i++) {
+            for (let j = 0; j < this.loadDistance + 1; j++) {
+                if(this.chunks[this.key(cx+i, cz+j)] === undefined){
+                    let chunk = new Chunk(cx+i, cz+j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
+                    this.chunks[this.key(cx+i, cz+j)] = chunk;
+                    scene.add(chunk.mesh);
+                }
+            }
+        }
+
+
+        for (let i = 0; i < this.loadDistance + 1; i++) {
+            for (let j = 1; j <= this.loadDistance ; j++) {
+                if(this.chunks[this.key(cx+i, cz-j)] === undefined){
+                    let chunk = new Chunk(cx+i, cz-j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
+                    this.chunks[this.key(cx+i, cz-j)] = chunk;
+                    scene.add(chunk.mesh);
+                }
+            }
+        }
+        //
+        // //NW
+        for (let i = 1; i <= this.loadDistance; i++) {
+            for (let j = 0; j < this.loadDistance + 1; j++) {
+                if(this.chunks[this.key(cx-i, cz+j)] === undefined){
+                    let chunk = new Chunk(cx-i, cz+j, chunkSize, seed, chunkSegments, samplingScale, landHeight,treeGenerate);
+                    this.chunks[this.key(cx-i, cz+j)] = chunk;
+                    scene.add(chunk.mesh);
+                }
+            }
+        }
+
+        //SW
+        for (let i = 1; i <= this.loadDistance; i++) {
+            for (let j = 1; j <= this.loadDistance ; j++) {
+                if(this.chunks[this.key(cx-i, cz-j)] === undefined){
+                    let chunk = new Chunk(cx-i, cz-j, chunkSize,  seed, chunkSegments, samplingScale, landHeight,treeGenerate);
+                    this.chunks[this.key(cx-i, cz-j)] = chunk;
+                    scene.add(chunk.mesh);
+                }
+            }
+        }
+
+
+
+
+
+        this.lastVisitChunk = currentChunk;
+    }
+
+
+
+
+    key(x,z){
+        return "" + x +","+ z;
+    }
+
+
+
+    setChunk(x, z, chunk) {
+        const key = "" + x +","+ z;
+        this.chunks[key] = chunk;
+    }
+
+    getChunk(x, z) {
+        const key = "" + x +","+ z;
+        return this.chunks[key];
+    }
+
+
 }
 
 /**
@@ -413,12 +509,12 @@ function testChunk() {
  */
 class Chunk {
     //x and y is chunk coordinate, the chunk coordinate multiply the size is the world coordinate
-    constructor(x = 0, y = 0, size = 1000, seed = 0, segments = 100, samplingScale = 5,
+    constructor(x = 0, z = 0, size = 1000, seed = 0, segments = 100, samplingScale = 5,
                 amplify = 100, treeGenerateProbability, showMesh) {
         // sampling from the noise space, and define the terrain plane
         this.mesh = new THREE.Object3D();
         this.x = x;
-        this.y = y;
+        this.z = z;
         this.size = size;
         this.seed = seed;
         this.amplify = amplify;
@@ -434,19 +530,17 @@ class Chunk {
 
     createTerrain(showMesh = false) {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
-        let material = new THREE.MeshPhongMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
-
+        let material = new THREE.MeshLambertMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
         const planeMesh = new THREE.Mesh(plane, material);
-        planeMesh.rotation.x = -Math.PI / 2;
 
-
-        this.mesh.add(planeMesh);
-        this.terrain = planeMesh;
-
+        const xTranslation = this.x * this.size + this.size / 2;
+        const zTranslation = this.z * this.size + this.size / 2;
+        planeMesh.position.x = xTranslation;
+        planeMesh.position.z = zTranslation;
 
         for (let i = 0, l = plane.attributes.position.count; i < l; i++) {
-            const vx = plane.attributes.position.getX(i);
-            const vy = plane.attributes.position.getY(i);
+            const vx = plane.attributes.position.getX(i) + xTranslation;
+            const vy = plane.attributes.position.getY(i) + zTranslation;
             noise.seed(this.seed);
             const vz = noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vy / this.size + 0.5);
             noise.seed(200);
@@ -456,9 +550,11 @@ class Chunk {
             this.perlin.push(vz + vz2);
         }
 
-        plane.attributes.position.needsUpdate = true;
+        //directly apply rotation to the object vertex
+        plane.rotateX(Math.PI / 2)
         plane.computeVertexNormals();
-
+        plane.attributes.position.needsUpdate = true;
+        this.terrain = planeMesh;
         this.mesh.add(planeMesh);
 
         if (showMesh) {
@@ -475,17 +571,27 @@ class Chunk {
     }
 
     decorateTree() {
+        let treeAmt = 0;
         for (let i = 0; i < this.terrain.geometry.attributes.position.count; i++) {
-            if (  probability(0.1)) {
+            if (probability(this.treeGenerateProbability)) {
+                treeAmt += 3;
+            }
+            if (treeAmt > 0) {
+                treeAmt -= 1;
                 const vx = this.terrain.geometry.attributes.position.getX(i);
                 const vy = this.terrain.geometry.attributes.position.getY(i);
                 const vz = this.terrain.geometry.attributes.position.getZ(i);
 
-                const nx = this.terrain.geometry.attributes.position.getY(i);
-                const ny = this.terrain.geometry.attributes.position.getX(i);
-                const nz = this.terrain.geometry.attributes.position.getZ(i);
+                const nx = this.terrain.geometry.attributes.normal.getX(i);
+                const ny = this.terrain.geometry.attributes.normal.getY(i);
+                const nz = this.terrain.geometry.attributes.normal.getZ(i);
 
-                let normal = new THREE.Vector3(nx, ny + 1, nz).normalize();
+                let normal = new THREE.Vector3(nx, ny, nz)
+                let pos = new THREE.Vector3(vx, vy, vz);
+                console.log(normal)
+                console.log(pos)
+
+                // let rotationMat = new THREE.Matrix3;
 
 
                 const score = mapVal(this.perlin[i], -1, 1, 0, 1);
@@ -502,16 +608,24 @@ class Chunk {
 
                 let color = Colors.green;
                 // let size = Math.max(Math.random() * 0.007, 0.3);
-                let size = 0.02 ;
+                let size = 0.03 + mapVal(Math.random(), 0, 1, -0.008, 0.008);
                 let type = types[treeTypeIdx]
                 let tree = treeFactory(type, Colors.green);
-                tree.mesh.position.y = vz;
-                tree.mesh.position.x = vx;
-                tree.mesh.position.z = -vy;
+
+                tree.mesh.position.y = vy;
+                tree.mesh.position.x = vx + (this.x * this.size + this.size / 2);
+                tree.mesh.position.z = vz + (this.z * this.size + this.size / 2);
+
+
                 tree.color = color;
-                tree.mesh.scale.set(size, size, size);
+                tree.mesh.scale.set(.1, 0.1, 0.1);
                 tree.type = type;
-                tree.mesh.lookAt(normal);
+                tree.mesh.position.y += 150 * size;
+
+                //combination of the surface normal and a vertical vector is the direction of the tree
+                let look = tree.mesh.localToWorld(new THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
+                console.log(normal)
+                tree.mesh.lookAt(look);
                 this.mesh.add(tree.mesh);
 
             }
@@ -520,6 +634,19 @@ class Chunk {
         }
     }
 
+    // remove the chunk and destroy all its geometries
+    destroy() {
+        scene.remove(this.mesh)
+        this.mesh.traverse((obj) => {
+            if (obj && obj.geometry && obj.material) {
+                obj.geometry.dispose();
+                obj.material.dispose();
+            }
+        })
+    }
+}
+
+function destroyMesh(obj) {
 
 }
 
@@ -539,6 +666,7 @@ function treeFactory(type, color) {
 function createAirPlane() {
     airPlane = new AirPlane();
     airPlane.mesh.rotation.y = Math.PI / 2;
+    airPlane.mesh.position.y = 180;
     airPlane.mesh.scale.set(.25, .25, .25);
     scene.add(airPlane.mesh);
 }
