@@ -511,7 +511,7 @@ class EnemiesHolder {
             let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
             let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
-            let color = Colors.blue;
+            let color = weather.getSeasonColor();
             let size = Math.max(Math.random() * 0.7, 0.3);
             let type = types[treeTypeIdx]
 
@@ -550,7 +550,9 @@ class EnemiesHolder {
             enemy.mesh.rotation.z = enemy.angle - Math.PI / 2;
             if (enemy.angle > 7 * Math.PI / 2) {
                 this.mesh.remove(enemy.mesh);
-                this.enemiesPool.push(enemy);
+                if(weather.getSeasonColor() === enemy.mesh.children[0].color){
+                    this.enemiesPool.push(enemy);
+                }
                 enemy.use = false;
             }
             if (car.scene) {
@@ -559,9 +561,14 @@ class EnemiesHolder {
                 let d = diffPos.length();
                 if (d <= game.enemyDistanceTolerance) {
                     particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
+                    console.log(enemy.mesh.children[0]);
+                    if(weather.getSeasonColor() === enemy.mesh.children[0].color){
+                        this.enemiesPool.push(enemy);
+                    }
                     this.mesh.remove(enemy.mesh);
-                    this.enemiesPool.push(enemy);
+
                     enemy.use = false;
+
                     if(game.rotateSpeed >  - game.basicRotateSpeed){
                         game.rotateSpeed -= 0.01;
                     }
@@ -745,53 +752,6 @@ function updateCar() {
     }
 }
 
-class Weather{
-    constructor() {
-        this.flakeArray = [];
-        this.rainArray = [];
-    }
-
-    snow = function(size){
-
-    }
-
-    rain = function(size){
-
-    }
-
-    startSnow(density){
-
-    }
-
-    updateSnow(){
-
-    }
-
-    endSnow(){
-
-    }
-
-    startRain(density){
-
-    }
-
-    updateRain(){
-
-    }
-
-    endRain(){
-
-    }
-
-    updateWeather(){
-
-    }
-
-    getSeason(time){
-
-    }
-}
-
 var fieldDistance, energyBar, replayMessage;
 
 function updateDistance(){
@@ -804,8 +764,6 @@ function updateEnergy(){
     energyBar.style.backgroundColor = (game.life<50)? "#f25346" : "#68c3c0";
 }
 
-let clock = new THREE.Clock();
-let weather = new Weather();
 
 function handleTouchEnd(event){
     if (game.status === "over"){
@@ -815,7 +773,7 @@ function handleTouchEnd(event){
 }
 
 function handleMouseUp(event){
-    if (game.status == "over"){
+    if (game.status === "over"){
         resetGame();
         hideReplay();
     }
@@ -829,6 +787,170 @@ function hideReplay(){
     replayMessage.style.display="none";
 }
 
+let cherryCount, rainCount, leavesCount, flakeCount, cherry, rain, leaves, snow, season, cnt=0,
+    cherryGeometry, cherryMaterial, cherryMesh, cherryArray, rainGeometry, rainMaterial, rainMesh, rainArray,
+    leavesGeometry, leavesMaterial, leavesMesh, leavesArray, flakeGeometry, flakeMaterial, flakeMesh, flakeArray;
+const Spring = Symbol("Spring");
+const Summer = Symbol("summer");
+const Fall = Symbol("Fall");
+const Winter = Symbol("winter");
+
+class Weather{
+    startCherry(density){
+        cherryCount = density;
+        cherryGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        cherryMaterial = new THREE.MeshBasicMaterial({color: 0xFFC0CB});
+        cherry = new THREE.Group();
+        for (let i = 0; i < cherryCount; i++) {
+            cherryMesh = new THREE.Mesh(cherryGeometry, cherryMaterial);
+            cherryMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            cherry.add(cherryMesh);
+        }
+        scene.add(cherry);
+        cherryArray = cherry.children;
+    }
+    updateCherry(){this.updateParticle(cherry, cherryArray);}
+    endCherry(){if(cherryCount>0) cherryCount-=20; else scene.remove(cherry);}
+
+    startRain(density){
+        rainCount = density;
+        rainGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
+        rain = new THREE.Group();
+        for (let i = 0; i < rainCount; i++) {
+            rainMesh = new THREE.Mesh(rainGeometry, rainMaterial);
+            rainMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            rain.add(rainMesh);
+        }
+        scene.add(rain);
+        rainArray = rain.children;
+    }
+    updateRain(){this.updateParticle(rain, rainArray);}
+    endRain(){if(rainCount>0) rainCount-=20; else scene.remove(rain);}
+
+    startLeaves(density){
+        leavesCount = density;
+        leavesGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        leavesMaterial = new THREE.MeshBasicMaterial({color: Colors.red,});
+        leaves = new THREE.Group();
+        for (let i = 0; i < leavesCount; i++) {
+            leavesMesh = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leavesMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            leaves.add(leavesMesh);
+        }
+        scene.add(leaves);
+        leavesArray = leaves.children;
+    }
+    updateLeaves(){this.updateParticle(leaves, leavesArray);}
+    endLeaves(){if(leavesCount>0) leavesCount-=20; else scene.remove(leaves);}
+
+    startSnow(density){
+        flakeCount = density;
+        flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        flakeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+        });
+        snow = new THREE.Group();
+        for (let i = 0; i < flakeCount; i++) {
+            flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
+            flakeMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            snow.add(flakeMesh);
+        }
+        scene.add(snow);
+        flakeArray = snow.children;
+    }
+    updateSnow(){this.updateParticle(snow, flakeArray);}
+    endSnow(){if(flakeCount>0) flakeCount-=20; else scene.remove(snow);}
+
+    updateParticle(particle, array){
+        for (let i = 0; i < array.length / 2; i++) {
+            array[i].rotation.y += 0.01;
+            array[i].rotation.x += 0.02;
+            array[i].rotation.z += 0.03;
+            array[i].position.y -= 0.9;
+            if (array[i].position.y < 0) {
+                array[i].position.y += 2000;
+            }
+        }
+        for (let i = array.length / 2; i < array.length; i++) {
+            array[i].rotation.y -= 0.03;
+            array[i].rotation.x -= 0.03;
+            array[i].rotation.z -= 0.02;
+            array[i].position.y -= 0.8;
+            if (array[i].position.y < -0) {
+                array[i].position.y += 2000;
+            }
+            particle.rotation.y -= 0.0000002;
+        }
+    }
+
+    moveParticles(){
+        switch (season){
+            case Spring:
+                this.updateCherry();
+                break;
+            case Summer:
+                this.updateRain();
+                break;
+            case Fall:
+                this.updateLeaves();
+                break;
+            case Winter:
+                this.updateSnow();
+                break;
+        }
+    }
+
+    getSeason(){
+        return season;
+    }
+
+    switchSeason(){
+        if(cnt%4===0) {
+            season = Spring; this.startCherry(5000); scene.remove(snow);
+        }else if(cnt%4===1) {
+            season = Summer; this.startRain(5000); scene.remove(cherry);
+        }else if(cnt%4===2) {
+            season = Fall; this.startLeaves(5000); scene.remove(rain);
+        }else {
+            season = Winter; this.startSnow(5000); scene.remove(leaves);
+        }
+        cnt++;
+    }
+
+    getSeasonColor(){
+        if(season === Spring){
+            return Colors.green;
+        }else if(season === Summer){
+            return Colors.red;
+        }else if(season === Fall){
+            return Colors.orange;
+        }else if(season === Winter){
+            return Colors.blue;
+        }
+    }
+}
+
+let weather = new Weather();
+let sinBuffer;
+let clock = new THREE.Clock();
+
 function loop() {
 
     var delta = clock.getDelta();
@@ -841,8 +963,6 @@ function loop() {
     sea.mesh.rotation.z += game.rotateSpeed;
     sky.mesh.rotation.z += .01;
     if (Math.random() > 0.97 && game.rotateSpeed >= game.basicRotateSpeed) {
-        let size = Math.max(Math.random() * 0.7, 0.3)
-        // enemiesHolder.spawnEnemies(Colors.blue, "BoxTree", size);
         enemiesHolder.spawnEnemiesPerlin();
     }
 
@@ -854,6 +974,19 @@ function loop() {
     }else if(game.status === "over"){
         showReplay();
     }
+
+    //<------------------season update------------------>
+    let currentSin = Math.sin((game.clock.getElapsedTime()));
+    if(currentSin*sinBuffer<0) { //indicate a sign change, corresponding to season change
+        weather.switchSeason();
+    }
+    weather.moveParticles();
+    sinBuffer = Math.sin((game.clock.getElapsedTime()));
+    console.log(sea.mesh.children[0]);
+    if(sea.mesh.children[0].material.color !== weather.getSeasonColor()){
+        sea.mesh.children[0].material.color = new THREE.Color(weather.getSeasonColor());
+    }
+    //<------------------season update------------------>
 
     // Rotate the propeller, the sea and the sky
     //airplane.propeller.rotation.x += 0.3;
