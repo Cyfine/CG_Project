@@ -14,7 +14,7 @@ var Colors = {
 //==================== scene control ==========================
 var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-    renderer, container, controls, enemiesHolder;
+    renderer, container, controls, enemiesHolder, weather;
 //==================== landscape control ==========================
 let chunkSize = 500;
 let chunkSegments = 25;
@@ -93,6 +93,7 @@ function init() {
     noise.seed(Math.random());
     addHelpers();
     createLights();
+    createWeather();
     // testChunk();
     createAirPlane();
     chunkLoader = new ChunkLoader(loadDistance);
@@ -391,15 +392,30 @@ function updateAirPlaneControl() {
 
 }
 
+function createWeather(){
+    weather = new Weather();
+}
+
+let sinBuffer;
 function loop() {
     controls.update();
 
     // render the scene
     updateAirPlaneControl();
 
-    chunkLoader.generateChunk();
+    //<------------------season update------------------>
+    let currentSin = Math.sin((clock.getElapsedTime()/4));
+    if(currentSin*sinBuffer<0) { //indicate a sign change, corresponding to season change
+        weather.switchSeason();
+    }
+    weather.moveParticles();
+    sinBuffer = Math.sin((clock.getElapsedTime()/4));
+    //<------------------season update------------------>
 
-    // testChunkInst.updateWaterSurface()
+    chunkLoader.generateChunk();
+    //makeRoughGround(waterMesh);
+
+    //testChunkInst.updateWaterSurface()
 
     renderer.render(scene, camera);
 
@@ -581,6 +597,7 @@ class Chunk {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
         let material = new THREE.MeshLambertMaterial({color: 0x0DAC05, side: THREE.DoubleSide});
         const planeMesh = new THREE.Mesh(plane, material);
+        planeMesh.receiveShadow = true;
 
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
@@ -679,9 +696,12 @@ class Chunk {
                 tree.mesh.position.y += 150 * size;
 
                 //combination of the surface normal and a vertical vector is the direction of the tree
-                let look = tree.mesh.localToWorld(new THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
+                //let look = tree.mesh.localToWorld(new THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
                 // console.log(normal)
-                tree.mesh.lookAt(look);
+                //tree.mesh.lookAt(look);
+                //tree.mesh.lookAt(normal);
+                tree.mesh.rotation.x = -nz/2;
+                tree.mesh.rotation.z = nx/2;
                 this.mesh.add(tree.mesh);
 
             }
@@ -712,16 +732,15 @@ class Chunk {
 
 
     createWater() {
-
-
-        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
-        let material = new THREE.MeshPhongMaterial({
+        const plane = new THREE.PlaneGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
+        let material = new THREE.MeshLambertMaterial({
             color: 0x197FF,
             side: THREE.DoubleSide,
             shininess: 60,
             opacity: 0.5
         });
         let waterMesh = new THREE.Mesh(plane, material);
+        waterMesh.receiveShadow = true;
         plane.rotateX(-Math.PI / 2)
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
@@ -784,6 +803,7 @@ class Chunk {
         }
         this.water.geometry.computeVertexNormals();
         this.water.geometry.attributes.position.needsUpdate = true;
+        //this.water.geometry.verticesNeedUpdate = true;
     }
 
 
@@ -976,6 +996,151 @@ class AirPlane {
     updatePropeller() {
         this.propeller.rotation.z += 0.3;
     }
+}
 
+let cherryCount, rainCount, leavesCount, flakeCount, cherry, rain, leaves, snow, season, cnt=0,
+    cherryGeometry, cherryMaterial, cherryMesh, cherryArray, rainGeometry, rainMaterial, rainMesh, rainArray,
+    leavesGeometry, leavesMaterial, leavesMesh, leavesArray, flakeGeometry, flakeMaterial, flakeMesh, flakeArray;
+const Spring = Symbol("Spring");
+const Summer = Symbol("summer");
+const Fall = Symbol("Fall");
+const Winter = Symbol("winter");
+class Weather{
+    startCherry(density){
+        cherryCount = density;
+        cherryGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        cherryMaterial = new THREE.MeshBasicMaterial({color: 0xFFC0CB});
+        cherry = new THREE.Group();
+        for (let i = 0; i < cherryCount; i++) {
+            cherryMesh = new THREE.Mesh(cherryGeometry, cherryMaterial);
+            cherryMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            cherry.add(cherryMesh);
+        }
+        scene.add(cherry);
+        cherryArray = cherry.children;
+    }
+    updateCherry(){this.updateParticle(cherry, cherryArray);}
+    endCherry(){if(cherryCount>0) cherryCount-=20; else scene.remove(cherry);}
 
+    startRain(density){
+        rainCount = density;
+        rainGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
+        rain = new THREE.Group();
+        for (let i = 0; i < rainCount; i++) {
+            rainMesh = new THREE.Mesh(rainGeometry, rainMaterial);
+            rainMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            rain.add(rainMesh);
+        }
+        scene.add(rain);
+        rainArray = rain.children;
+    }
+    updateRain(){this.updateParticle(rain, rainArray);}
+    endRain(){if(rainCount>0) rainCount-=20; else scene.remove(rain);}
+
+    startLeaves(density){
+        leavesCount = density;
+        leavesGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        leavesMaterial = new THREE.MeshBasicMaterial({color: Colors.red,});
+        leaves = new THREE.Group();
+        for (let i = 0; i < leavesCount; i++) {
+            leavesMesh = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leavesMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            leaves.add(leavesMesh);
+        }
+        scene.add(leaves);
+        leavesArray = leaves.children;
+    }
+    updateLeaves(){this.updateParticle(leaves, leavesArray);}
+    endLeaves(){if(leavesCount>0) leavesCount-=20; else scene.remove(leaves);}
+
+    startSnow(density){
+        flakeCount = density;
+        flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        flakeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+        });
+        snow = new THREE.Group();
+        for (let i = 0; i < flakeCount; i++) {
+            flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
+            flakeMesh.position.set(
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 4000,
+                (Math.random() - 0.5) * 2000
+            );
+            snow.add(flakeMesh);
+        }
+        scene.add(snow);
+        flakeArray = snow.children;
+    }
+    updateSnow(){this.updateParticle(snow, flakeArray);}
+    endSnow(){if(flakeCount>0) flakeCount-=20; else scene.remove(snow);}
+
+    updateParticle(particle, array){
+        for (let i = 0; i < array.length / 2; i++) {
+            array[i].rotation.y += 0.01;
+            array[i].rotation.x += 0.02;
+            array[i].rotation.z += 0.03;
+            array[i].position.y -= 0.9;
+            if (array[i].position.y < 0) {
+                array[i].position.y += 2000;
+            }
+        }
+        for (let i = array.length / 2; i < array.length; i++) {
+            array[i].rotation.y -= 0.03;
+            array[i].rotation.x -= 0.03;
+            array[i].rotation.z -= 0.02;
+            array[i].position.y -= 0.8;
+            if (array[i].position.y < -0) {
+                array[i].position.y += 2000;
+            }
+            particle.rotation.y -= 0.0000002;
+        }
+    }
+
+    moveParticles(){
+        switch (season){
+            case Spring:
+                this.updateCherry();
+                break;
+            case Summer:
+                this.updateRain();
+                break;
+            case Fall:
+                this.updateLeaves();
+                break;
+            case Winter:
+                this.updateSnow();
+                break;
+        }
+    }
+
+    getSeason(){
+        return season;
+    }
+
+    switchSeason(){
+        if(cnt%4===0) {
+            season = Spring; this.startCherry(5000); scene.remove(snow);
+        }else if(cnt%4===1) {
+            season = Summer; this.startRain(5000); scene.remove(cherry);
+        }else if(cnt%4===2) {
+            season = Fall; this.startLeaves(5000); scene.remove(rain);
+        }else {
+            season = Winter; this.startSnow(5000); scene.remove(leaves);
+        }
+        cnt++;
+    }
 }
