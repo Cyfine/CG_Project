@@ -617,7 +617,8 @@ class EnemiesHolder {
                 let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
                 let d = diffPos.length();
                 if (d <= game.enemyDistanceTolerance) {
-                    if (glassBreak!==undefined) glassBreak.play();
+                    if (glassBreak!==undefined)
+                        glassBreak.play();
                     particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
                     console.log(enemy.mesh.children[0]);
                     if(weather.getSeasonColor() === enemy.mesh.children[0].color){
