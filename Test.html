@@ -819,14 +819,16 @@
             this.rainArray = [];
         }
 
-        snow = function(size){}
-
         rain = function(size){}
 
         startSnow(density){
             flakeCount = 9000;
             flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
-            flakeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff});
+            flakeMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                shading: THREE.FlatShading,
+
+            });
             snow = new THREE.Group();
             for (let i = 0; i < flakeCount; i++) {
                 flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
@@ -942,7 +944,7 @@
         updateCar();
 
         weather.updateSnow();
-        weather.endSnow();
+        //weather.endSnow();
         //weather.updateRain();
         //weather.endRain();
 
