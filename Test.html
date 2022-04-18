@@ -91,8 +91,8 @@
         createCar();
         createEnemies();
         createParticles();
-        weather.startSnow();
-        //weather.startRain();
+        //weather.startSnow(3000);
+        weather.startRain();
 
         // start a loop that will update the objects' positions
         // and render the scene on each frame
@@ -822,12 +822,10 @@
         rain = function(size){}
 
         startSnow(density){
-            flakeCount = 9000;
+            flakeCount = density;
             flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
             flakeMaterial = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
-                shading: THREE.FlatShading,
-
             });
             snow = new THREE.Group();
             for (let i = 0; i < flakeCount; i++) {
@@ -871,8 +869,10 @@
 
         startRain(density){
             flakeCount = 9000;
-            flakeGeometry = new THREE.SphereGeometry(1.5); // radius
-            flakeMaterial = new THREE.MeshPhongMaterial({color: 0xbff4f7, transparent: true, opacity: 0.5, fog: true, depthWrite: false});
+            flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+            flakeMaterial = new THREE.MeshBasicMaterial({
+                color: Colors.blue,
+            });
             rain = new THREE.Group();
             for (let i = 0; i < flakeCount; i++) {
                 flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
@@ -943,9 +943,9 @@
         enemiesHolder.rotateEnemies();
         updateCar();
 
-        weather.updateSnow();
+        //weather.updateSnow();
         //weather.endSnow();
-        //weather.updateRain();
+        weather.updateRain();
         //weather.endRain();
 
         // Rotate the propeller, the sea and the sky
