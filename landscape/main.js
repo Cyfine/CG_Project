@@ -47,6 +47,10 @@ let airPlane;
 const clock = new THREE.Clock();
 const keyboard = new THREEx.KeyboardState();
 
+//==================== music ==========================
+var musicFlag = true;
+var backgroundSound, audioListener;
+
 
 const tick = () => {
     const delta = clock.getDelta();
@@ -184,8 +188,49 @@ function createScene() {
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
     window.addEventListener('resize', handleWindowResize, false);
+    window.addEventListener('click', handlePlayAudio, false);
 }
 
+function handlePlayAudio(){
+    if(musicFlag){
+        // instantiate a listener
+        audioListener = new THREE.AudioListener();
+        // add the listener to the camera
+        camera.add(audioListener);
+        // instantiate a loader
+        const audioLoader = new THREE.AudioLoader();
+        // instantiate audio object
+        backgroundSound = new THREE.Audio(audioListener);
+        // load a resource
+        audioLoader.load("./music/overture.mp3", function (audioBuffer) {//callback
+                // set the audio object buffer to the loaded object
+                backgroundSound.setBuffer(audioBuffer);
+                backgroundSound.setLoop(true);
+                backgroundSound.setVolume(0.4);
+                backgroundSound.play();
+            },
+        );
+        musicFlag = false;
+        glassBreakInit();
+    }
+}
+
+function updateMusic(musicName){
+    backgroundSound.stop();
+    // instantiate a loader
+    const audioLoader = new THREE.AudioLoader();
+    // instantiate audio object
+    backgroundSound = new THREE.Audio(audioListener);
+    // load a resource
+    audioLoader.load(musicName, function (audioBuffer) {//callback
+            // set the audio object buffer to the loaded object
+            backgroundSound.setBuffer(audioBuffer);
+            backgroundSound.setLoop(true);
+            backgroundSound.setVolume(0.4);
+            backgroundSound.play();
+        },
+    );
+}
 
 let hemisphereLight, shadowLight;
 
@@ -1147,13 +1192,13 @@ class Weather{
 
     switchSeason(){
         if(cnt%4===0) {
-            season = Spring; this.startCherry(5000); scene.remove(snow);
+            season = Spring; this.startCherry(5000); scene.remove(snow); updateMusic("./music/Spring.mp3");
         }else if(cnt%4===1) {
-            season = Summer; this.startRain(5000); scene.remove(cherry);
+            season = Summer; this.startRain(5000); scene.remove(cherry); updateMusic("./music/Summer.mp3");
         }else if(cnt%4===2) {
-            season = Fall; this.startLeaves(5000); scene.remove(rain);
+            season = Fall; this.startLeaves(5000); scene.remove(rain); updateMusic("./music/Fall.mp3");
         }else {
-            season = Winter; this.startSnow(5000); scene.remove(leaves);
+            season = Winter; this.startSnow(5000); scene.remove(leaves); updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
