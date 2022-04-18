@@ -55,6 +55,9 @@
         orange: 0xFD6D06,
     };
 
+    var musicFlag = true;
+    var backgroundSound, audioListener;
+
     var scene,
         camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
         renderer, container, controls, enemiesHolder, particlesHolder;
@@ -88,6 +91,8 @@
         createCar();
         createEnemies();
         createParticles();
+        weather.startSnow();
+        //weather.startRain();
 
         // start a loop that will update the objects' positions
         // and render the scene on each frame
@@ -172,6 +177,30 @@
         // Listen to the screen: if the user resizes it
         // we have to update the camera and the renderer size
         window.addEventListener('resize', handleWindowResize, false);
+        window.addEventListener('click', handlePlayAudio, false);
+    }
+
+    function handlePlayAudio(){
+        if(musicFlag){
+            // instantiate a listener
+            audioListener = new THREE.AudioListener();
+            // add the listener to the camera
+            camera.add(audioListener);
+            // instantiate a loader
+            const audioLoader = new THREE.AudioLoader();
+            // instantiate audio object
+            backgroundSound = new THREE.Audio(audioListener);
+            // load a resource
+            audioLoader.load("./music/Fall.mp3", function (audioBuffer) {//callback
+                    // set the audio object buffer to the loaded object
+                    backgroundSound.setBuffer(audioBuffer);
+                    backgroundSound.setLoop(true);
+                    backgroundSound.setVolume(0.4);
+                    backgroundSound.play();
+                },
+            );
+            musicFlag = false;
+        }
     }
 
     function handleWindowResize() {
@@ -216,6 +245,7 @@
         // to activate the lights, just add them to the scene
         scene.add(hemisphereLight);
         scene.add(ambientLight);
+        //scene.add(new THREE.AmbientLight(0xffffff,.5));
         scene.add(shadowLight);
     }
 
@@ -233,7 +263,8 @@
 
         // create the material
         let mat = new THREE.MeshPhongMaterial({
-            color: Colors.blue,
+            //color: Colors.blue,
+            color: Colors.red,
             // color: 0x919899,
             transparent: false,
             opacity: .6,
@@ -781,51 +812,109 @@
         }
     }
 
+    let flakeCount, flakeGeometry, flakeMaterial, snow, rain, flakeMesh, flakeArray, i;
     class Weather{
         constructor() {
             this.flakeArray = [];
             this.rainArray = [];
         }
 
-        snow = function(size){
+        snow = function(size){}
 
-        }
-
-        rain = function(size){
-
-        }
+        rain = function(size){}
 
         startSnow(density){
-
+            flakeCount = 9000;
+            flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+            flakeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff});
+            snow = new THREE.Group();
+            for (let i = 0; i < flakeCount; i++) {
+                flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
+                flakeMesh.position.set(
+                    (Math.random() - 0.5) * 2000,
+                    (Math.random() - 0.5) * 4000,
+                    (Math.random() - 0.5) * 2000
+                );
+                snow.add(flakeMesh);
+            }
+            scene.add(snow);
+            flakeArray = snow.children;
         }
 
         updateSnow(){
-
+            for (i = 0; i < flakeArray.length / 2; i++) {
+            flakeArray[i].rotation.y += 0.01;
+            flakeArray[i].rotation.x += 0.02;
+            flakeArray[i].rotation.z += 0.03;
+            flakeArray[i].position.y -= 0.9;
+            if (flakeArray[i].position.y < 0) {
+                flakeArray[i].position.y += 2000;
+            }
         }
+            for (i = flakeArray.length / 2; i < flakeArray.length; i++) {
+                flakeArray[i].rotation.y -= 0.03;
+                flakeArray[i].rotation.x -= 0.03;
+                flakeArray[i].rotation.z -= 0.02;
+                flakeArray[i].position.y -= 0.8;
+                if (flakeArray[i].position.y < -0) {
+                    flakeArray[i].position.y += 2000;
+                }
+                snow.rotation.y -= 0.0000002;
+            }}
 
         endSnow(){
-
+            if(flakeCount>0) flakeCount-=50;
+            else scene.remove(snow);
         }
 
         startRain(density){
-
+            flakeCount = 9000;
+            flakeGeometry = new THREE.SphereGeometry(1.5); // radius
+            flakeMaterial = new THREE.MeshPhongMaterial({color: 0xbff4f7, transparent: true, opacity: 0.5, fog: true, depthWrite: false});
+            rain = new THREE.Group();
+            for (let i = 0; i < flakeCount; i++) {
+                flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
+                flakeMesh.position.set(
+                    (Math.random() - 0.5) * 2000,
+                    (Math.random() - 0.5) * 4000,
+                    (Math.random() - 0.5) * 2000
+                );
+                rain.add(flakeMesh);
+            }
+            scene.add(rain);
+            flakeArray = rain.children;
         }
 
         updateRain(){
-
+            for (i = 0; i < flakeArray.length / 2; i++) {
+                flakeArray[i].rotation.y += 0.01;
+                flakeArray[i].rotation.x += 0.02;
+                flakeArray[i].rotation.z += 0.03;
+                flakeArray[i].position.y -= 0.9;
+                if (flakeArray[i].position.y < 0) {
+                    flakeArray[i].position.y += 2000;
+                }
+            }
+            for (i = flakeArray.length / 2; i < flakeArray.length; i++) {
+                flakeArray[i].rotation.y -= 0.03;
+                flakeArray[i].rotation.x -= 0.03;
+                flakeArray[i].rotation.z -= 0.02;
+                flakeArray[i].position.y -= 0.8;
+                if (flakeArray[i].position.y < -0) {
+                    flakeArray[i].position.y += 2000;
+                }
+                rain.rotation.y -= 0.0000002;
+            }
         }
 
         endRain(){
-
+            if(flakeCount>0) flakeCount-=50;
+            else scene.remove(rain);
         }
 
-        updateWeather(){
+        updateWeather(){}
 
-        }
-
-        getSeason(time){
-
-        }
+        getSeason(time){}
     }
 
     let clock = new THREE.Clock();
@@ -851,6 +940,11 @@
 
         enemiesHolder.rotateEnemies();
         updateCar();
+
+        weather.updateSnow();
+        weather.endSnow();
+        //weather.updateRain();
+        //weather.endRain();
 
         // Rotate the propeller, the sea and the sky
         //airplane.propeller.rotation.x += 0.3;

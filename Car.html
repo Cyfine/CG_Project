@@ -119,8 +119,16 @@
         controls = new THREE.TrackballControls(camera);
 
         flakeCount = 9000;
+
+        //<----------------------------snow---------------------------->
         flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
-        flakeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+        flakeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, flatShading: true});
+
+        //<----------------------------rain---------------------------->
+        //flakeGeometry = new THREE.SphereGeometry(1.5);
+        //color: 0xbff4f7, 0xa1c6cc, 0xd4f1f9, 0x7ba6b6, 0xd5dfe3
+        //flakeMaterial = new THREE.MeshPhongMaterial({color: 0xA1C6CC, transparent: true, opacity: 0.5, fog: true, depthWrite: false});
+
         snow = new THREE.Group();
         for (let i = 0; i < flakeCount; i++) {
             flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
