@@ -18,7 +18,7 @@
 <script>
   let scene, camera, renderer, orbitControls, particles, planeMesh;
 
-  //const noise = new SimplexNoise();
+  const noise = new SimplexNoise();
   const particleNum = 2000;
   const maxRange = 1000;
   const minRange = maxRange / 2;
@@ -61,7 +61,7 @@
 
   const makeRoughGround = (mesh) => {
     const time = Date.now();
-    mesh.geometry.vertices.forEach(function(vertex, i) {
+    mesh.geometry.vertices.forEach(function(vertex) {
       const noise1 = noise.noise2D(
               vertex.x * 0.01 + time * 0.0003,
               vertex.y * 0.01 + time * 0.0003,
@@ -77,8 +77,7 @@
               vertex.y * 0.012 + time * 0.00009,
               vertex.z * 0.015 + time * 0.00015,
       ) * 4;
-      const distance = (noise1 + noise2 + noise3);
-      vertex.z = distance;
+      vertex.z = (noise1 + noise2 + noise3);
     })
     mesh.geometry.verticesNeedUpdate = true;
     mesh.geometry.normalsNeedUpdate = true;
