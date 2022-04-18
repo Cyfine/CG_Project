@@ -49,6 +49,8 @@
         blue: 0x68c3c0,
         green: 0x24942c,
         grey: 0xcccccc,
+        red2: 0xFd090e,
+        orange: 0xFD6D06,
     };
 
     var scene,
@@ -93,8 +95,12 @@
         game = {
             enemyDistanceTolerance: 70,
             life: 20,
-            damage: 3,
-            status: "start"
+            damage: 7,
+            status: "start",
+            point: 0,
+            clock: new THREE.Clock(),
+            levelPoints: 5,
+            season: "spring",
         }
     }
 
@@ -545,7 +551,7 @@
                 let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
                 let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
-                let color = Colors.red;
+                let color = Colors.orange;
                 let size = Math.max(Math.random() * 0.7, 0.3);
                 let type = types[treeTypeIdx]
 
@@ -767,21 +773,72 @@
                 }
                 if(game.life > 0){
                     particlesHolder.spawnParticles(pos, Math.min(5 * (20/game.life), 10), color, Math.min(4 * (20/game.life), 8), "rise" );
-                }else if(game.life <= 0){
-                    particlesHolder.spawnParticles(pos, 10 , Colors.red, 10, "explode" );
+                }else if(game.life <= 0 && game.status === "start"){
+                    game.status = "over";
+                    scene.remove(car.scene);
+                    rotateSpeed = 0;
+                    particlesHolder.spawnParticles(pos, 100 , Colors.red2, 20, "explode" );
                 }
             }
             //particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
         }
     }
 
-    var clock = new THREE.Clock();
+    class weather{
+        flakeArray = [];
+        rainArray = [];
+
+        snow = function(size){
+
+        }
+
+        rain = function(size){
+
+        }
+
+        startSnow(density){
+
+        }
+
+        updateSnow(){
+
+        }
+
+        endSnow(){
+
+        }
+
+        startRain(density){
+
+        }
+
+        updateRain(){
+
+        }
+
+        endRain(){
+
+        }
+
+        updateWeather(){
+
+        }
+
+        getSeason(time){
+
+        }
+    }
+
+
+    let clock = new THREE.Clock();
 
     function loop() {
 
         var delta = clock.getDelta();
 
         if (mixer) mixer.update(delta);
+
+        if(game.status === "over") rotateSpeed = 0;
 
         sea.mesh.rotation.z += rotateSpeed;
         sky.mesh.rotation.z += .01;
