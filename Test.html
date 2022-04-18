@@ -189,7 +189,7 @@
             // instantiate audio object
             backgroundSound = new THREE.Audio(audioListener);
             // load a resource
-            audioLoader.load("./music/Fall.mp3", function (audioBuffer) {//callback
+            audioLoader.load("./music/overture.mp3", function (audioBuffer) {//callback
                     // set the audio object buffer to the loaded object
                     backgroundSound.setBuffer(audioBuffer);
                     backgroundSound.setLoop(true);
@@ -199,6 +199,23 @@
             );
             musicFlag = false;
         }
+    }
+
+    function updateMusic(musicName){
+        backgroundSound.stop();
+        // instantiate a loader
+        const audioLoader = new THREE.AudioLoader();
+        // instantiate audio object
+        backgroundSound = new THREE.Audio(audioListener);
+        // load a resource
+        audioLoader.load(musicName, function (audioBuffer) {//callback
+                // set the audio object buffer to the loaded object
+                backgroundSound.setBuffer(audioBuffer);
+                backgroundSound.setLoop(true);
+                backgroundSound.setVolume(0.4);
+                backgroundSound.play();
+            },
+        );
     }
 
     function handleWindowResize() {
@@ -945,13 +962,13 @@
 
         switchSeason(){
             if(cnt%4===0) {
-                season = Spring; this.startCherry(5000); scene.remove(snow);
+                season = Spring; this.startCherry(5000); scene.remove(snow); updateMusic("./music/Spring.mp3");
             }else if(cnt%4===1) {
-                season = Summer; this.startRain(5000); scene.remove(cherry);
+                season = Summer; this.startRain(5000); scene.remove(cherry); updateMusic("./music/Summer.mp3");
             }else if(cnt%4===2) {
-                season = Fall; this.startLeaves(5000); scene.remove(rain);
+                season = Fall; this.startLeaves(5000); scene.remove(rain); updateMusic("./music/Fall.mp3");
             }else {
-                season = Winter; this.startSnow(5000); scene.remove(leaves);
+                season = Winter; this.startSnow(5000); scene.remove(leaves); updateMusic("./music/Winter.mp3");
             }
             cnt++;
         }
@@ -981,12 +998,12 @@
         updateCar();
 
         //<------------------season update------------------>
-        let currentSin = Math.sin((game.clock.getElapsedTime()));
+        let currentSin = Math.sin((game.clock.getElapsedTime())/3);
         if(currentSin*sinBuffer<0) { //indicate a sign change, corresponding to season change
             weather.switchSeason();
         }
         weather.moveParticles();
-        sinBuffer = Math.sin((game.clock.getElapsedTime()));
+        sinBuffer = Math.sin((game.clock.getElapsedTime())/3);
         //<------------------season update------------------>
 
         // Rotate the propeller, the sea and the sky

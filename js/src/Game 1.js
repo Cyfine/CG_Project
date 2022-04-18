@@ -16,6 +16,8 @@ var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
     renderer, container, controls, enemiesHolder, particlesHolder;
 
+var musicFlag = true;
+var backgroundSound, audioListener, glassBreak;
 
 var level = 3;
 var enemiesPool = [];
@@ -136,7 +138,62 @@ function createScene() {
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
     window.addEventListener('resize', handleWindowResize, false);
+    window.addEventListener('click', handlePlayAudio, false);
 }
+
+function handlePlayAudio(){
+    if(musicFlag){
+        // instantiate a listener
+        audioListener = new THREE.AudioListener();
+        // add the listener to the camera
+        camera.add(audioListener);
+        // instantiate a loader
+        const audioLoader = new THREE.AudioLoader();
+        // instantiate audio object
+        backgroundSound = new THREE.Audio(audioListener);
+        // load a resource
+        audioLoader.load("./music/overture.mp3", function (audioBuffer) {//callback
+                // set the audio object buffer to the loaded object
+                backgroundSound.setBuffer(audioBuffer);
+                backgroundSound.setLoop(true);
+                backgroundSound.setVolume(0.4);
+                backgroundSound.play();
+            },
+        );
+        musicFlag = false;
+        glassBreakInit();
+    }
+}
+
+function updateMusic(musicName){
+    backgroundSound.stop();
+    // instantiate a loader
+    const audioLoader = new THREE.AudioLoader();
+    // instantiate audio object
+    backgroundSound = new THREE.Audio(audioListener);
+    // load a resource
+    audioLoader.load(musicName, function (audioBuffer) {//callback
+            // set the audio object buffer to the loaded object
+            backgroundSound.setBuffer(audioBuffer);
+            backgroundSound.setLoop(true);
+            backgroundSound.setVolume(0.4);
+            backgroundSound.play();
+        },
+    );
+}
+
+function glassBreakInit(){
+    // instantiate a loader
+    const audioLoader = new THREE.AudioLoader();
+    glassBreak = new THREE.Audio(audioListener);
+    audioLoader.load("./music/glass_break.mp3", function(buffer){
+        glassBreak.setBuffer(buffer);
+        glassBreak.setLoop(false);
+        glassBreak.setVolume(0.6);
+    })
+}
+
+
 
 function handleWindowResize() {
     // update height and width of the renderer and the camera
@@ -560,6 +617,7 @@ class EnemiesHolder {
                 let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
                 let d = diffPos.length();
                 if (d <= game.enemyDistanceTolerance) {
+                    glassBreak.play();
                     particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
                     console.log(enemy.mesh.children[0]);
                     if(weather.getSeasonColor() === enemy.mesh.children[0].color){
@@ -923,13 +981,13 @@ class Weather{
 
     switchSeason(){
         if(cnt%4===0) {
-            season = Spring; this.startCherry(5000); scene.remove(snow);
+            season = Spring; this.startCherry(5000); scene.remove(snow); updateMusic("./music/Spring.mp3");
         }else if(cnt%4===1) {
-            season = Summer; this.startRain(5000); scene.remove(cherry);
+            season = Summer; this.startRain(5000); scene.remove(cherry); updateMusic("./music/Summer.mp3");
         }else if(cnt%4===2) {
-            season = Fall; this.startLeaves(5000); scene.remove(rain);
+            season = Fall; this.startLeaves(5000); scene.remove(rain); updateMusic("./music/Fall.mp3");
         }else {
-            season = Winter; this.startSnow(5000); scene.remove(leaves);
+            season = Winter; this.startSnow(5000); scene.remove(leaves); updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
@@ -976,12 +1034,12 @@ function loop() {
     }
 
     //<------------------season update------------------>
-    let currentSin = Math.sin((game.clock.getElapsedTime()));
+    let currentSin = Math.sin((game.clock.getElapsedTime())/4);
     if(currentSin*sinBuffer<0) { //indicate a sign change, corresponding to season change
         weather.switchSeason();
     }
     weather.moveParticles();
-    sinBuffer = Math.sin((game.clock.getElapsedTime()));
+    sinBuffer = Math.sin((game.clock.getElapsedTime())/4);
     console.log(sea.mesh.children[0]);
     if(sea.mesh.children[0].material.color !== weather.getSeasonColor()){
         sea.mesh.children[0].material.color = new THREE.Color(weather.getSeasonColor());
