@@ -33,7 +33,7 @@ const waterHeightMap = textureLoader.load("./textures/water/Water_002_DISP.png")
 const waterRoughness = textureLoader.load("./textures/water/Water_002_ROUGH.jpg");
 const waterAmbientOcclusion = textureLoader.load("./textures/water/Water_002_OCC.jpg");
 
-
+let waterMesh;
 let waterMaterial = new THREE.MeshStandardMaterial({
     map: waterBaseColor,
     normalMap: waterNormalMap,
@@ -50,6 +50,7 @@ const keyboard = new THREEx.KeyboardState();
 //==================== music ==========================
 var musicFlag = true;
 var backgroundSound, audioListener;
+const noise0 = new SimplexNoise();
 
 
 const tick = () => {
@@ -98,7 +99,7 @@ function init() {
     addHelpers();
     createLights();
     createWeather();
-    // testChunk();
+    //testChunk();
     createAirPlane();
     chunkLoader = new ChunkLoader(loadDistance);
 
@@ -211,7 +212,6 @@ function handlePlayAudio(){
             },
         );
         musicFlag = false;
-        glassBreakInit();
     }
 }
 
@@ -463,10 +463,7 @@ function loop() {
     //<------------------season update------------------>
 
     chunkLoader.generateChunk();
-    //makeRoughGround(waterMesh);
-
-    //testChunkInst.updateWaterSurface()
-
+    waterMesh.geometry.verticesNeedUpdate = true;
     renderer.render(scene, camera);
 
     // call the loop function again
@@ -508,6 +505,9 @@ class ChunkLoader {
             if (this.dist(chunk.x, chunk.z, currentChunk[0], currentChunk[1]) > destructionDist) {
                 delete this.chunks[key];
                 chunk.destroy();
+            }
+            else{
+                chunk.updateWater();
             }
             // else{
             //     chunk.updateWaterSurface();
@@ -812,9 +812,9 @@ class Chunk {
             // shininess: 60,
             opacity: 0.5
         });
-        let waterMesh = new THREE.Mesh(plane, material);
+        waterMesh = new THREE.Mesh(plane, material);
         waterMesh.receiveShadow = true;
-        plane.rotateX(-Math.PI / 2)
+        plane.rotateX(-Math.PI / 2);
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
 
@@ -856,6 +856,55 @@ class Chunk {
         waterMesh.position.y = this.waterHeight;
         this.water = waterMesh;
         this.mesh.add(waterMesh)
+    }
+
+    updateWater(){
+        const time = Date.now();
+        for (let i = 0; i < this.water.geometry.attributes.position.count; i++) {
+            const noise1 = noise0.noise2D(
+                this.water.geometry.attributes.position.getX(i)  * 0.01 + time * 0.0003,
+                this.water.geometry.attributes.position.getY(i)  * 0.01 + time * 0.0003,
+                this.water.geometry.attributes.position.getZ(i)  * 0.01 + time * 0.0003,
+            ) * 5;
+            const noise2 = noise0.noise2D(
+                this.water.geometry.attributes.position.getX(i) * 0.02 + time * 0.00012,
+                this.water.geometry.attributes.position.getY(i) * 0.02 + time * 0.00015,
+                this.water.geometry.attributes.position.getZ(i)  * 0.02 + time * 0.00015,
+            ) * 4;
+            const noise3 = noise0.noise2D(
+                this.water.geometry.attributes.position.getX(i) * 0.009 + time * 0.00015,
+                this.water.geometry.attributes.position.getY(i) * 0.012 + time * 0.00009,
+                this.water.geometry.attributes.position.getZ(i)  * 0.015+ time * 0.00015,
+            ) * 4;
+            this.water.geometry.attributes.position.setZ(i, 1000*(noise1 + noise2 + noise3));
+            //console.log(this.water.geometry.attributes.position.getZ(i));
+        }
+        waterMesh.geometry.verticesNeedUpdate = true;
+        waterMesh.geometry.normalsNeedUpdate = true;
+        waterMesh.geometry.computeVertexNormals();
+        waterMesh.geometry.computeFaceNormals();
+        // waterMesh.geometry.vertices.forEach(function(vertex) {
+        //     const noise1 = noise.noise2D(
+        //         vertex.x * 0.01 + time * 0.0003,
+        //         vertex.y * 0.01 + time * 0.0003,
+        //         vertex.z * 0.01 + time * 0.0003,
+        //     ) * 5;
+        //     const noise2 = noise.noise2D(
+        //         vertex.x * 0.02 + time * 0.00012,
+        //         vertex.y * 0.02 + time * 0.00015,
+        //         vertex.z * 0.02 + time * 0.00015,
+        //     ) * 4;
+        //     const noise3 = noise.noise2D(
+        //         vertex.x * 0.009 + time * 0.00015,
+        //         vertex.y * 0.012 + time * 0.00009,
+        //         vertex.z * 0.015 + time * 0.00015,
+        //     ) * 4;
+        //     vertex.z = (noise1 + noise2 + noise3);
+        // })
+        // waterMesh.geometry.verticesNeedUpdate = true;
+        // waterMesh.geometry.normalsNeedUpdate = true;
+        // waterMesh.geometry.computeVertexNormals();
+        // waterMesh.geometry.computeFaceNormals();
     }
 
     updateWaterSurface() {
@@ -1148,7 +1197,7 @@ class Weather {
     startLeaves(density){
         leavesCount = density;
         leavesGeometry = new THREE.TetrahedronGeometry(1.5); // radius
-        leavesMaterial = new THREE.MeshBasicMaterial({color: Colors.red,});
+        leavesMaterial = new THREE.MeshBasicMaterial({color: 0xFB8806,});
         leaves = new THREE.Group();
         for (let i = 0; i < leavesCount; i++) {
             leavesMesh = new THREE.Mesh(leavesGeometry, leavesMaterial);
@@ -1232,13 +1281,17 @@ class Weather {
 
     switchSeason(){
         if(cnt%4===0) {
-            season = Spring; this.startCherry(5000); scene.remove(snow); updateMusic("./music/Spring.mp3");
+            season = Spring; this.startCherry(5000); scene.remove(snow);
+            if(backgroundSound!== undefined) updateMusic("./music/Spring.mp3");
         }else if(cnt%4===1) {
-            season = Summer; this.startRain(5000); scene.remove(cherry); updateMusic("./music/Summer.mp3");
+            season = Summer; this.startRain(5000); scene.remove(cherry);
+            if(backgroundSound!== undefined) updateMusic("./music/Summer.mp3");
         }else if(cnt%4===2) {
-            season = Fall; this.startLeaves(5000); scene.remove(rain); updateMusic("./music/Fall.mp3");
+            season = Fall; this.startLeaves(5000); scene.remove(rain);
+            if(backgroundSound!== undefined) updateMusic("./music/Fall.mp3");
         }else {
-            season = Winter; this.startSnow(5000); scene.remove(leaves); updateMusic("./music/Winter.mp3");
+            season = Winter; this.startSnow(5000); scene.remove(leaves);
+            if(backgroundSound!== undefined) updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
