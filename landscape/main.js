@@ -259,8 +259,9 @@ let BoxTree = function (color) {
     m.position.y = 170;
     this.mesh.add(m);
 
-    let geoS = new THREE.BoxGeometry(35, 35, 200);
+    let geoS = new THREE.BoxGeometry(35, 35, 400);
     let s = new THREE.Mesh(geoS, stunk);
+    s.position.y -= 130;
     s.rotation.x = Math.PI / 2;
     this.mesh.add(s);
 }
@@ -281,8 +282,9 @@ let ConeTree = function (color) {
     let m = new THREE.Mesh(geo, leaf);
     m.position.y = 170;
     this.mesh.add(m);
-    let geoS = new THREE.BoxGeometry(35, 35, 200);
+    let geoS = new THREE.BoxGeometry(35, 35, 400);
     let s = new THREE.Mesh(geoS, stunk);
+    s.position.y -= 130;
     s.rotation.x = Math.PI / 2;
     this.mesh.add(s);
 }
@@ -308,8 +310,9 @@ let ThreeConesTree = function (color) {
         this.mesh.add(m);
     }
 
-    let geoS = new THREE.BoxGeometry(35, 35, 200);
+    let geoS = new THREE.BoxGeometry(35, 35, 400);
     let s = new THREE.Mesh(geoS, stunk);
+    s.position.y -= 130;
     s.rotation.x = Math.PI / 2;
     this.mesh.add(s);
 }
@@ -335,8 +338,9 @@ let FiveConesTree = function (color) {
         this.mesh.add(m);
     }
 
-    let geoS = new THREE.BoxGeometry(35, 35, 200);
+    let geoS = new THREE.BoxGeometry(35, 35, 400);
     let s = new THREE.Mesh(geoS, stunk);
+    s.position.y -= 130;
     s.rotation.x = Math.PI / 2;
     this.mesh.add(s);
 }
@@ -620,6 +624,7 @@ class Chunk {
         plane.rotateX(Math.PI / 2)
         plane.computeVertexNormals();
         plane.attributes.position.needsUpdate = true;
+        planeMesh.receiveShadow = true;
         this.terrain = planeMesh;
 
 
@@ -640,26 +645,34 @@ class Chunk {
 
     decorateTree() {
         let treeAmt = 0;
-        for (let i = 0; i < this.terrain.geometry.attributes.position.count; i++) {
+        for (let i = 0; i < this.terrain.geometry.attributes.position.count; i+=3) {
             const vy = this.terrain.geometry.attributes.position.getY(i);
+            const vx = this.terrain.geometry.attributes.position.getX(i);
+            const vz = this.terrain.geometry.attributes.position.getZ(i);
 
             if (vy < this.waterHeight + 30) {
                 continue;
             }
-            if (probability(this.treeGenerateProbability)) {
-                treeAmt += 3;
+            // if (probability(this.treeGenerateProbability)) {
+            //     treeAmt += 3;
+            // }
+            noise.seed(1000);
+            if(noise.perlin2(this.samplingScale * vx / this.size + 0.5, this.samplingScale * vz / this.size + 0.5) > 0.4){
+                treeAmt += 3 ;
             }
+
+
             if (treeAmt > 0) {
                 treeAmt -= 1;
-                const vx = this.terrain.geometry.attributes.position.getX(i);
-                const vz = this.terrain.geometry.attributes.position.getZ(i);
+                // const vx = this.terrain.geometry.attributes.position.getX(i);
+                // const vz = this.terrain.geometry.attributes.position.getZ(i);
 
 
                 const nx = this.terrain.geometry.attributes.normal.getX(i);
                 const ny = this.terrain.geometry.attributes.normal.getY(i);
                 const nz = this.terrain.geometry.attributes.normal.getZ(i);
 
-                let normal = new THREE.Vector3(nx, ny, nz)
+                // let normal = new THREE.Vector3(nx, ny, nz)
                 // let pos = new THREE.Vector3(vx, vy, vz);
                 // console.log(normal)
                 // console.log(pos)
@@ -681,27 +694,28 @@ class Chunk {
 
                 let color = Colors.green;
                 // let size = Math.max(Math.random() * 0.007, 0.3);
-                let size = 0.06 + mapVal(Math.random(), 0, 1, -0.008, 0.008);
+                let size = 0.09 + mapVal(Math.random(), 0, 1, -0.008, 0.008);
                 let type = types[treeTypeIdx]
                 let tree = treeFactory(type, Colors.green);
 
+                let offset = this.size/this.segments;
                 tree.mesh.position.y = vy;
-                tree.mesh.position.x = vx + (this.x * this.size + this.size / 2);
-                tree.mesh.position.z = vz + (this.z * this.size + this.size / 2);
+                tree.mesh.position.x = vx + (this.x * this.size + this.size / 2) + offset*Math.random();
+                tree.mesh.position.z = vz + (this.z * this.size + this.size / 2) + offset*Math.random();
 
 
                 tree.color = color;
                 tree.mesh.scale.set(size, size, size);
                 tree.type = type;
-                tree.mesh.position.y += 150 * size;
+                tree.mesh.position.y += 160 * size;
 
                 //combination of the surface normal and a vertical vector is the direction of the tree
-                //let look = tree.mesh.localToWorld(new THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
+                //let look = tree.mesh.localToWorld(nsew THREE.Vector3(-100 * nx, 100 * nz, 100 * Math.abs(ny - 5)));
                 // console.log(normal)
                 //tree.mesh.lookAt(look);
                 //tree.mesh.lookAt(normal);
-                tree.mesh.rotation.x = -nz/2;
-                tree.mesh.rotation.z = nx/2;
+                tree.mesh.rotation.x = -nz/3;
+                tree.mesh.rotation.z = nx/3;
                 this.mesh.add(tree.mesh);
 
             }
