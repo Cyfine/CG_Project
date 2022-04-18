@@ -29,6 +29,8 @@ function init() {
     resetGame();
     fieldDistance = document.getElementById("distValue");
     energyBar = document.getElementById("energyBar");
+    replayMessage = document.getElementById("replayMessage");
+
     // set up the scene, the camera and the renderer
     createScene();
     // randomly generate seed for the noise generator
@@ -48,7 +50,8 @@ function init() {
     // start a loop that will update the objects' positions
     // and render the scene on each frame
     document.addEventListener('mousemove', handleMousemove, false);
-
+    document.addEventListener('touchend', handleTouchEnd, false);
+    document.addEventListener('mouseup', handleMouseUp, false);
     loop();
 }
 
@@ -64,6 +67,9 @@ function resetGame() {
         season: "spring",
         basicRotateSpeed: 0.005,
         rotateSpeed: 0.005,
+    }
+    if(scene && car){
+        scene.add(car.scene);
     }
 }
 
@@ -786,7 +792,7 @@ class Weather{
     }
 }
 
-var fieldDistance, energyBar;
+var fieldDistance, energyBar, replayMessage;
 
 function updateDistance(){
     game.distance = 630 * (game.basicRotateSpeed/(Math.PI*2)) * game.clock.getElapsedTime () * 10;
@@ -801,6 +807,27 @@ function updateEnergy(){
 let clock = new THREE.Clock();
 let weather = new Weather();
 
+function handleTouchEnd(event){
+    if (game.status === "over"){
+        resetGame();
+        hideReplay();
+    }
+}
+
+function handleMouseUp(event){
+    if (game.status == "over"){
+        resetGame();
+        hideReplay();
+    }
+}
+
+function showReplay(){
+    replayMessage.style.display="block";
+}
+
+function hideReplay(){
+    replayMessage.style.display="none";
+}
 
 function loop() {
 
@@ -824,6 +851,8 @@ function loop() {
     if(game.status === "start"){
         updateDistance();
         updateEnergy();
+    }else if(game.status === "over"){
+        showReplay();
     }
 
     // Rotate the propeller, the sea and the sky
