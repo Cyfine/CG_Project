@@ -47,6 +47,10 @@ let airPlane;
 const clock = new THREE.Clock();
 const keyboard = new THREEx.KeyboardState();
 
+//==================== music ==========================
+var musicFlag = true;
+var backgroundSound, audioListener;
+
 
 const tick = () => {
     const delta = clock.getDelta();
@@ -184,8 +188,49 @@ function createScene() {
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
     window.addEventListener('resize', handleWindowResize, false);
+    window.addEventListener('click', handlePlayAudio, false);
 }
 
+function handlePlayAudio(){
+    if(musicFlag){
+        // instantiate a listener
+        audioListener = new THREE.AudioListener();
+        // add the listener to the camera
+        camera.add(audioListener);
+        // instantiate a loader
+        const audioLoader = new THREE.AudioLoader();
+        // instantiate audio object
+        backgroundSound = new THREE.Audio(audioListener);
+        // load a resource
+        audioLoader.load("./music/overture.mp3", function (audioBuffer) {//callback
+                // set the audio object buffer to the loaded object
+                backgroundSound.setBuffer(audioBuffer);
+                backgroundSound.setLoop(true);
+                backgroundSound.setVolume(0.4);
+                backgroundSound.play();
+            },
+        );
+        musicFlag = false;
+        glassBreakInit();
+    }
+}
+
+function updateMusic(musicName){
+    backgroundSound.stop();
+    // instantiate a loader
+    const audioLoader = new THREE.AudioLoader();
+    // instantiate audio object
+    backgroundSound = new THREE.Audio(audioListener);
+    // load a resource
+    audioLoader.load(musicName, function (audioBuffer) {//callback
+            // set the audio object buffer to the loaded object
+            backgroundSound.setBuffer(audioBuffer);
+            backgroundSound.setLoop(true);
+            backgroundSound.setVolume(0.4);
+            backgroundSound.play();
+        },
+    );
+}
 
 let hemisphereLight, shadowLight;
 
@@ -1077,16 +1122,10 @@ class Weather {
         scene.add(cherry);
         cherryArray = cherry.children;
     }
+    updateCherry(){this.updateParticle(cherry, cherryArray);}
+    endCherry(){if(cherryCount>0) cherryCount-=20; else scene.remove(cherry);}
 
-    updateCherry() {
-        this.updateParticle(cherry, cherryArray);
-    }
-
-    endCherry() {
-        if (cherryCount > 0) cherryCount -= 20; else scene.remove(cherry);
-    }
-
-    startRain(density) {
+    startRain(density){
         rainCount = density;
         rainGeometry = new THREE.TetrahedronGeometry(1.5); // radius
         rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
@@ -1103,16 +1142,10 @@ class Weather {
         scene.add(rain);
         rainArray = rain.children;
     }
+    updateRain(){this.updateParticle(rain, rainArray);}
+    endRain(){if(rainCount>0) rainCount-=20; else scene.remove(rain);}
 
-    updateRain() {
-        this.updateParticle(rain, rainArray);
-    }
-
-    endRain() {
-        if (rainCount > 0) rainCount -= 20; else scene.remove(rain);
-    }
-
-    startLeaves(density) {
+    startLeaves(density){
         leavesCount = density;
         leavesGeometry = new THREE.TetrahedronGeometry(1.5); // radius
         leavesMaterial = new THREE.MeshBasicMaterial({color: Colors.red,});
@@ -1129,16 +1162,10 @@ class Weather {
         scene.add(leaves);
         leavesArray = leaves.children;
     }
+    updateLeaves(){this.updateParticle(leaves, leavesArray);}
+    endLeaves(){if(leavesCount>0) leavesCount-=20; else scene.remove(leaves);}
 
-    updateLeaves() {
-        this.updateParticle(leaves, leavesArray);
-    }
-
-    endLeaves() {
-        if (leavesCount > 0) leavesCount -= 20; else scene.remove(leaves);
-    }
-
-    startSnow(density) {
+    startSnow(density){
         flakeCount = density;
         flakeGeometry = new THREE.TetrahedronGeometry(1.5); // radius
         flakeMaterial = new THREE.MeshBasicMaterial({
@@ -1157,16 +1184,10 @@ class Weather {
         scene.add(snow);
         flakeArray = snow.children;
     }
+    updateSnow(){this.updateParticle(snow, flakeArray);}
+    endSnow(){if(flakeCount>0) flakeCount-=20; else scene.remove(snow);}
 
-    updateSnow() {
-        this.updateParticle(snow, flakeArray);
-    }
-
-    endSnow() {
-        if (flakeCount > 0) flakeCount -= 20; else scene.remove(snow);
-    }
-
-    updateParticle(particle, array) {
+    updateParticle(particle, array){
         for (let i = 0; i < array.length / 2; i++) {
             array[i].rotation.y += 0.01;
             array[i].rotation.x += 0.02;
@@ -1188,8 +1209,8 @@ class Weather {
         }
     }
 
-    moveParticles() {
-        switch (season) {
+    moveParticles(){
+        switch (season){
             case Spring:
                 this.updateCherry();
                 break;
@@ -1205,27 +1226,19 @@ class Weather {
         }
     }
 
-    getSeason() {
+    getSeason(){
         return season;
     }
 
-    switchSeason() {
-        if (cnt % 4 === 0) {
-            season = Spring;
-            this.startCherry(5000);
-            scene.remove(snow);
-        } else if (cnt % 4 === 1) {
-            season = Summer;
-            this.startRain(5000);
-            scene.remove(cherry);
-        } else if (cnt % 4 === 2) {
-            season = Fall;
-            this.startLeaves(5000);
-            scene.remove(rain);
-        } else {
-            season = Winter;
-            this.startSnow(5000);
-            scene.remove(leaves);
+    switchSeason(){
+        if(cnt%4===0) {
+            season = Spring; this.startCherry(5000); scene.remove(snow); updateMusic("./music/Spring.mp3");
+        }else if(cnt%4===1) {
+            season = Summer; this.startRain(5000); scene.remove(cherry); updateMusic("./music/Summer.mp3");
+        }else if(cnt%4===2) {
+            season = Fall; this.startLeaves(5000); scene.remove(rain); updateMusic("./music/Fall.mp3");
+        }else {
+            season = Winter; this.startSnow(5000); scene.remove(leaves); updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
