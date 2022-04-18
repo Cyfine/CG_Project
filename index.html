@@ -13,20 +13,41 @@
     <script src="js/three.js"></script>
     <script src="js/controls/TrackballControls.js"></script>
     <script src="js/loaders/GLTFLoader.js"></script>
+    <script src="js/simplex-noise.js"></script>
+    <script src="js/TweenMax.min.js"></script>
+    <script src="js/lib/perlin.js"></script>
+    <script src="js/lib/util.js"></script>
     <!--    <script type="text/javascript" src="js/TweenMax.min.js"></script>-->
-    <script type="text/javascript" src="js/src/game.js"></script>
+    <script type="text/javascript" src="js/src/Game 1.js"></script>
+    <!--<script type="text/javascript" src="js/src/game.js"></script>-->
     <!--    <script type="text/javascript" src="js/src/Car_0.js"></script>-->
 </head>
 <body>
 <div class="game-holder" id="gameHolder">
     <div class="header">
-        <h1><span>cg</span>Group Project</h1>
+        <h1><span>the</span>Aviator</h1>
+        <h2>fly it to the end</h2>
+        <div class="score" id="score">
+            <div class="score__content" id="dist">
+                <div class="score__label">distance</div>
+                <div class="score__value score__value--dist" id="distValue">000</div>
+            </div>
+            <div class="score__content" id="energy">
+                <div class="score__label">energy</div>
+                <div class="score__value score__value--energy" id="energyValue">
+                    <div class="energy-bar" id="energyBar"></div>
+                </div>
+            </div>
+        </div>
     </div>
     <div class="world" id="world"></div>
-</div>
-
-
+    <div class="message message--replay" id="replayMessage">Click to Replay</div>
+    <div class="message message--instructions" id="instructions">Grab the blue pills<span>avoid the red ones</span></div>
 </div>
 <!-- Demo links -->
+<nav class="meta">
+    <a class="codrops-icon codrops-icon--prev" href="http://tympanus.net/Development/Interactive3DMallMap/" title="Previous Demo"><span>Previous Demo</span></a>
+    <a class="codrops-icon codrops-icon--drop" href="http://tympanus.net/codrops/?p=26501" title="Back to the article"><span>Back to the Codrops article</span></a>
+</nav>
 </body>
 </html>

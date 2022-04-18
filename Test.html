@@ -30,6 +30,8 @@
 <script src="js/TweenMax.min.js"></script>
 <script src="js/controls/TrackballControls.js"></script>
 <script src="js/loaders/GLTFLoader.js"></script>
+<script src="js/simplex-noise.js"></script>
+<script src="js/OrbitControls.js"></script>
 <script src="js/lib/perlin.js"></script>
 <script src="js/lib/util.js"></script>
 
@@ -65,6 +67,7 @@
     var particlesPool = [];
     var cloudsPool = [];
     var game;
+    //var noise = new SimplexNoise();
 
     window.addEventListener('load', init, false);
 
@@ -183,10 +186,9 @@
     var ambientLight, hemisphereLight, shadowLight;
 
     function createLights() {
-        ambientLight = new THREE.AmbientLight(0xdc8874, .5);
-        ambientLight.intensity = 0;
+        ambientLight = new THREE.AmbientLight(0xdc8874, 0);
 
-        hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, .9)
+        hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, .8)
 
         // A directional light shines from a specific direction.
         // It acts like the sun, that means that all the rays produced are parallel.
