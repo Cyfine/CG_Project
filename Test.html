@@ -48,7 +48,7 @@
         brownDark: 0x23190f,
         blue: 0x68c3c0,
         green: 0x24942c,
-        grey: 0xcccccc,
+        grey: 0x777a7a,
         red2: 0xFd090e,
         orange: 0xFD6D06,
     };
@@ -57,11 +57,13 @@
         camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
         renderer, container, controls, enemiesHolder, particlesHolder;
 
+
     var level = 3;
     var basicRotateSpeed = 0.005;
     var rotateSpeed = basicRotateSpeed;
     var enemiesPool = [];
     var particlesPool = [];
+    var cloudsPool = [];
     var game;
 
     window.addEventListener('load', init, false);
@@ -178,12 +180,12 @@
         camera.updateProjectionMatrix();
     }
 
-    var hemisphereLight, shadowLight;
+    var ambientLight, hemisphereLight, shadowLight;
 
     function createLights() {
-        // A hemisphere light is a gradient colored light;
-        // the first parameter is the sky color, the second parameter is the ground color,
-        // the third parameter is the intensity of the light
+        ambientLight = new THREE.AmbientLight(0xdc8874, .5);
+        ambientLight.intensity = 0;
+
         hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, .9)
 
         // A directional light shines from a specific direction.
@@ -211,7 +213,7 @@
 
         // to activate the lights, just add them to the scene
         scene.add(hemisphereLight);
-
+        scene.add(ambientLight);
         scene.add(shadowLight);
     }
 
@@ -229,7 +231,8 @@
 
         // create the material
         let mat = new THREE.MeshPhongMaterial({
-            color: Colors.red,
+            color: Colors.blue,
+            // color: 0x919899,
             transparent: false,
             opacity: .6,
             shading: THREE.FlatShading,
@@ -246,7 +249,7 @@
 
     // Instantiate the sea and add it to the scene:
 
-    var sea;
+    let sea;
 
     function createSea() {
         sea = new Sea();
@@ -301,6 +304,7 @@
         }
     }
 
+
     // Define a Sky Object
     const Sky = function () {
         // Create an empty container
@@ -316,30 +320,20 @@
         // create the clouds
         for (var i = 0; i < this.nClouds; i++) {
             var c = new Cloud();
-
-            // set the rotation and the position of each cloud;
-            // for that we use a bit of trigonometry
             var a = stepAngle * i; // this is the final angle of the cloud
             var h = 1000 + Math.random() * 200; // this is the distance between the center of the axis and the cloud itself
 
-            // Trigonometry!!! I hope you remember what you've learned in Math :)
-            // in case you don't:
-            // we are simply converting polar coordinates (angle, distance) into Cartesian coordinates (x, y)
             c.mesh.position.y = Math.sin(a) * h;
             c.mesh.position.x = Math.cos(a) * h;
 
-            // rotate the cloud according to its position
             c.mesh.rotation.z = a + Math.PI / 2;
 
-            // for a better result, we position the clouds
-            // at random depths inside of the scene
             c.mesh.position.z = -400 + Math.random() * 1000;
 
-            // we also set a random scale for each cloud
             var s = 1 + Math.random() * 2;
             c.mesh.scale.set(s, s, s);
 
-            // do not forget to add the mesh of each cloud in the scene
+            cloudsPool.push(c.mesh);
             this.mesh.add(c.mesh);
         }
     }
@@ -551,7 +545,7 @@
                 let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
                 let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
-                let color = Colors.orange;
+                let color = Colors.blue;
                 let size = Math.max(Math.random() * 0.7, 0.3);
                 let type = types[treeTypeIdx]
 
@@ -606,6 +600,7 @@
                             rotateSpeed -= 0.01;
                         }
                         game.life -= game.damage;
+                        ambientLight.intensity = 1.5;
                     }
                 }
             }
@@ -784,9 +779,11 @@
         }
     }
 
-    class weather{
-        flakeArray = [];
-        rainArray = [];
+    class Weather{
+        constructor() {
+            this.flakeArray = [];
+            this.rainArray = [];
+        }
 
         snow = function(size){
 
@@ -829,8 +826,9 @@
         }
     }
 
-
     let clock = new THREE.Clock();
+    let weather = new Weather();
+
 
     function loop() {
 
@@ -840,6 +838,7 @@
 
         if(game.status === "over") rotateSpeed = 0;
 
+        ambientLight.intensity += (.0 - ambientLight.intensity)*game.clock.getElapsedTime ()*0.005;
         sea.mesh.rotation.z += rotateSpeed;
         sky.mesh.rotation.z += .01;
         if (Math.random() > 0.97 && rotateSpeed >= basicRotateSpeed) {
