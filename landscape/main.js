@@ -521,6 +521,11 @@ class ChunkLoader {
         return [cx, cz];
     }
 
+    getCurrentChunkInstance(){
+        let chunkCoord = this.getCurrentChunk();
+        return this.chunks[this.key(chunkCoord[0], chunkCoord[1])];
+    }
+
     // call in animation loop
     generateChunk() {
         let currentChunk = this.getCurrentChunk();
