@@ -714,8 +714,10 @@ class Chunk {
 
     createFireBall(){
         let temp = new FireBall(Colors.red).mesh;
-        temp.scale.set(10000,10000,10000);
+        temp.scale.set(400,400,400);
+        temp.position.set(-300,1000,-6)
         scene.add(temp);
+        console.log(temp);
     }
 
     decorateTree() {
@@ -1394,13 +1396,7 @@ void main()
   gl_FragColor = vec4(vec3(blue+0.0001*yPosition*white), 1);
 }`;
 const _fireballVS = `
-attribute vec3 position;
-attribute vec3 normal;
-uniform mat3 normalMatrix;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform mat4 modelMatrix;
-uniform mat4 viewMatrix;
+
 uniform float time;
 varying vec3 fNormal;
 varying vec3 fPosition;
