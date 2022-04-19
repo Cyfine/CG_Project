@@ -820,6 +820,12 @@ class Chunk {
         this.createWater3(); //using setY
     }
 
+    getDisplacementX(){
+        return this.x * this.size + this.size / 2;
+    }
+    getDisplacementZ(){
+        return this.z * this.size + this.size / 2;
+    }
 
     createTerrain(showMesh = false) {
         const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments, this.segments);
@@ -871,8 +877,34 @@ class Chunk {
             line.rotation.x = -Math.PI / 2;
             this.mesh.add(line);
         }
-
-
+    }
+    //let waterMesh, waterMaterial, waterPlane;
+    createWater() {
+        this.waterPlane = new THREE.PlaneGeometry(this.size, this.size, this.segments, this.segments);
+        this.waterMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time:{type:'f', value: 1.0},
+                xt: {type:'f', value: this.x * this.size + this.size / 2},
+                zt: {type:'f', value: this.z * this.size + this.size / 2},
+            },
+            vertexShader: _VS, fragmentShader: _FS,
+            side: THREE.DoubleSide,
+            flatShading: true,
+            opacity: 0.5,
+            shininess: 60,
+        })
+        let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
+        const xT = this.x * this.size + this.size / 2; //translate
+        const zT = this.z * this.size + this.size / 2; //translate
+        waterMesh.position.x = xT;
+        waterMesh.position.z = zT;
+        this.mesh.add(waterMesh);
+        waterMesh.rotation.x = -Math.PI / 2;
+        waterMesh.position.y = this.waterHeight;
+        this.water = waterMesh;
+        this.waterPlane.computeVertexNormals();
+        this.waterPlane.attributes.position.needsUpdate = true;
+        waterMesh.receiveShadow = true;
     }
 
 
@@ -978,33 +1010,6 @@ class Chunk {
         this.mesh.add(water);
     }
 
-    //let waterMesh, waterMaterial, waterPlane;
-    createWater() {
-        const xT = this.x * this.size + this.size / 2; //translate
-        const zT = this.z * this.size + this.size / 2; //translate
-        this.waterPlane = new THREE.PlaneGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
-        this.waterMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                time:{type:'f', value: 1.0},
-                xt: {type:'f', value: this.x * this.size + this.size / 2},
-                zt: {type:'f', value: this.z * this.size + this.size / 2},
-            },
-            vertexShader: _VS, fragmentShader: _FS,
-            side: THREE.DoubleSide,
-            //flatShading: true,
-            //opacity: 0.5,
-            //shininess: 60,
-        })
-        let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
-        waterMesh.position.x = xT;
-        waterMesh.position.z = zT;
-        waterMesh.receiveShadow = true;
-        waterMesh.rotation.x = -Math.PI/2;
-        waterMesh.position.y = this.waterHeight;
-        this.water = waterMesh;
-        this.mesh.add(waterMesh);
-    }
-
 
     createWater2() {
         // const textureLoader = new THREE.TextureLoader();
@@ -1092,6 +1097,7 @@ class Chunk {
         })
 
     }
+
 
 
 }
@@ -1309,6 +1315,25 @@ class AirPlane {
     }
 }
 
+
+function colorGradient(x ,y){
+    var cols = [{
+        stop: 0,
+        color: new THREE.Color(0xf7b000)
+    }, {
+        stop: .25,
+        color: new THREE.Color(0xdd0080)
+    }, {
+        stop: .5,
+        color: new THREE.Color(0x622b85)
+    }, {
+        stop: .75,
+        color: new THREE.Color(0x007dae)
+    }, {
+        stop: 1,
+        color: new THREE.Color(0x77c8db)
+    }];
+}
 let cherryCount, rainCount, balloonsCount, flakeCount, cherry, rain, balloons, snow, season, cnt = 0,
     cherryGeometry, cherryMaterial, cherryMesh, cherryArray, rainGeometry, rainMaterial, rainMesh, rainArray,
     balloonGeometry, balloonMaterial, balloonMesh, balloonsArray, flakeGeometry, flakeMaterial, flakeMesh, flakeArray;
@@ -1342,12 +1367,15 @@ class Weather {
         cherryGeometry = new THREE.ExtrudeBufferGeometry(shape, extrudeSettings); // radius
         cherryMaterial = new THREE.MeshBasicMaterial({color: 0xFFC0CB});
         cherry = new THREE.Group();
+
+        let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
+        let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < cherryCount; i++) {
             cherryMesh = new THREE.Mesh(cherryGeometry, cherryMaterial);
             cherryMesh.position.set(
-                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 1000 + xx,
                 (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 2000
+                (Math.random() - 0.5) * 1000 + zz,
             );
             cherry.add(cherryMesh);
         }
@@ -1365,10 +1393,12 @@ class Weather {
         let rainGeometry2 = new THREE.SphereGeometry(radius);
         rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
         rain = new THREE.Group();
+        let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
+        let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < rainCount; i++) {
-            let x = (Math.random() - 0.5) * 2000;
+            let x = (Math.random() - 0.5) * 1000 + xx;
             let y = (Math.random() - 0.5) * 4000;
-            let z = (Math.random() - 0.5) * 2000;
+            let z = (Math.random() - 0.5) * 1000 + zz;
             rainMesh = new THREE.Mesh(rainGeometry, rainMaterial);
             let rainMesh2 = new THREE.Mesh(rainGeometry2, rainMaterial);
             rainMesh.position.set(x, y, z); //cone
@@ -1389,10 +1419,12 @@ class Weather {
         let tubeGeo = new THREE.CylinderGeometry(1,1,50,32);
         balloonGeometry = new THREE.SphereGeometry(20);
         balloons = new THREE.Group();
+        let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
+        let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < balloonsCount; i++) {
-            let x = (Math.random() - 0.5) * 2000;
+            let x = (Math.random() - 0.5) * 1000 + xx;
             let y = (Math.random() - 0.5) * 4000;
-            let z = (Math.random() - 0.5) * 2000;
+            let z = (Math.random() - 0.5) * 1000 + zz;
             let tube = new THREE.Mesh(tubeGeo, balloonMaterial);
             balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
             tube.position.set(x,y,z);
@@ -1413,12 +1445,14 @@ class Weather {
             color: 0xffffff,
         });
         snow = new THREE.Group();
+        let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
+        let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < flakeCount; i++) {
             flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
             flakeMesh.position.set(
-                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 1000 + xx,
                 (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 2000
+                (Math.random() - 0.5) * 1000 + zz
             );
             snow.add(flakeMesh);
         }
@@ -1492,26 +1526,9 @@ class Weather {
         cnt++;
     }
 }
-
-function colorGradient(x ,y){
-    var cols = [{
-        stop: 0,
-        color: new THREE.Color(0xf7b000)
-    }, {
-        stop: .25,
-        color: new THREE.Color(0xdd0080)
-    }, {
-        stop: .5,
-        color: new THREE.Color(0x622b85)
-    }, {
-        stop: .75,
-        color: new THREE.Color(0x007dae)
-    }, {
-        stop: 1,
-        color: new THREE.Color(0x77c8db)
-    }];
-}
 //==================== shaders ==========================
+//float xx = mod((position.x+xt), 500.);
+//float yy = mod((position.y+zt), 500.);
 const _VS = `uniform float time;
 uniform float xt;
 uniform float zt;
@@ -1519,8 +1536,8 @@ varying float yPosition;
 void main(){
     float x = position.x;
     float y = position.y;
-    float xx = (position.x+xt);
-    float yy = (position.y+zt);
+    float xx = position.x+xt;
+    float yy = position.y+zt;
     float PI = 3.141592653589;
 
     float sx = 0.0;
@@ -1552,7 +1569,7 @@ void main(){
     yPosition = sz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(sx,sy,sin(sz) * 10.0,1.0);
 }`;
-const _FS = `
+ const _FS = `
 varying float yPosition;
 void main()
 {
