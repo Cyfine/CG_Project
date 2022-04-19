@@ -27,6 +27,7 @@ let destructionDist = 6;
 let chunkLoader;
 let enemiesPool = [];
 let particlesPool = [];
+let waterSurfaceTime = 0;
 
 const textureLoader = new THREE.TextureLoader();
 const waterBaseColor = textureLoader.load("./textures/water/Water_002_COLOR.jpg");
@@ -463,6 +464,7 @@ let sinBuffer;
 
 function loop() {
     controls.update();
+    waterSurfaceTime += 0.01;
 
     // render the scene
     updateAirPlaneControl();
@@ -530,7 +532,7 @@ class ChunkLoader {
             }
             else{
                 if(chunk.waterMaterial){
-                    chunk.waterMaterial.uniforms.time.value += 0.01;
+                    chunk.waterMaterial.uniforms.time.value = waterSurfaceTime;
                 }
             }
         }
