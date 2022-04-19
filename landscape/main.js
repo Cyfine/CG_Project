@@ -14,7 +14,7 @@ var Colors = {
 //==================== scene control ==========================
 var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-    renderer, container, controls, enemiesHolder, weather, particlesHolder;
+    renderer, container, controls, enemiesHolder, weather, particlesHolder, game;
 //==================== landscape control ==========================
 let chunkSize = 500;
 let chunkSegments = 25;
@@ -56,6 +56,8 @@ var backgroundSound, audioListener;
 const noise0 = new SimplexNoise();
 
 
+
+
 const tick = () => {
     const delta = clock.getDelta();
     const moveDistance = 5 * delta;
@@ -95,8 +97,22 @@ const tick = () => {
 
 window.addEventListener('load', init, false);
 
-function init() {
+function resetGame() {
+    game = {
+        enemyDistanceTolerance: 20,
+        energy: 100,
+        status: "start",
+        point: 0,
+        clock: new THREE.Clock(),
+        energyLastTime: 1000,
+        energyGenerateSpeed: 20,
+        energyGeneratePossibility: 0.1,
+        energyLost: 2,
+    }
+}
 
+function init() {
+    resetGame();
     createScene();
     noise.seed(Math.random());
     addHelpers();
@@ -397,12 +413,15 @@ let FiveConesTree = function (color) {
 
 let FireBall = function () {
     this.mesh = new THREE.Object3D();
-    let ball = new THREE.SphereGeometry(50);
-    let material = new THREE.ShaderMaterial({
-        uniforms: {},
-        vertexShader: _fireballVS, fragmentShader: _fireballFS,
+    let ball = new THREE.OctahedronGeometry(6.0, 0);
+    let material = new THREE.MeshPhongMaterial({
+        color: Colors.blue,
+        transparent: true,
+        opacity: .7,
+        shading: THREE.FlatShading,
     });
     this.mesh.add(new THREE.Mesh(ball, material));
+    this.life = game.energyLastTime;
 }
 
 
@@ -412,6 +431,7 @@ function updateAirPlaneControl() {
     const rotateAngle = Math.PI / 2 * delta;
     airPlane.updatePropeller();
     airPlane.mesh.translateZ(-moveDistance);
+    airPlane.life -= game.energyLost;
 
     // airPlane.mesh.rotateY(Math.PI/2);
     if (keyboard.pressed("down")) {
@@ -467,7 +487,13 @@ function loop() {
     waterSurfaceTime += 0.01;
 
     // render the scene
-    updateAirPlaneControl();
+    if(airPlane.life > 0){
+        updateAirPlaneControl();
+    }else if(airPlane.life <= 0 && game.status === "start"){
+        particlesHolder.spawnParticles(airPlane.mesh.position.clone(), 15, Colors.red , 10, "explode");
+        scene.remove(airPlane.mesh);
+        game.status = "restart";
+    }
 
     //<------------------season update------------------>
     let currentSin = Math.sin((clock.getElapsedTime() / 4));
@@ -479,7 +505,7 @@ function loop() {
     //<------------------season update------------------>
 
     //<------------------Enemy update------------------>
-    if(Math.random() > 0.9){
+    if(Math.random() > 1 - game.energyGeneratePossibility){
         enemiesHolder.spawnEnemies();
         //scene.add();
     }
@@ -643,7 +669,7 @@ class EnemiesHolder {
     }
 
     spawnEnemies() {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < game.energyGenerateSpeed; i++) {
 
             let enemy;
             if(enemiesPool.length > 0){
@@ -656,39 +682,33 @@ class EnemiesHolder {
             enemy.use = true;
             let newX = airPlane.mesh.position.x + (Math.random() - 0.5) * this.height;
             let newZ = airPlane.mesh.position.z + (Math.random() - 0.5) * this.height;
-            let desX = newX + (Math.random() - 0.5) * this.height;
-            let desZ = newZ + (Math.random() - 0.5) * this.height;
-            enemy.destination = new THREE.Vector3((desX - newX)/this.height, -1, (desZ - newZ)/this.height);
-            enemy.speed = Math.max(7, Math.random() * 20);
+            let newY =airPlane.mesh.position.z + (Math.random() - 0.5) * this.height
             enemy.mesh.position.x = newX;
             enemy.mesh.position.z = newZ;
-            enemy.mesh.position.y = this.height;
+            enemy.mesh.position.y = newY;
             //enemy.mesh.scale.set(100, 100, 100);
             this.mesh.add(enemy.mesh);
         }
     }
+
     rotateEnemies() {
         for(let i = 0; i < this.enemiesInUse.length; i++){
-            let enemy = this.enemiesInUse[i];
-            enemy.mesh.position.x += enemy.destination.x * enemy.speed;
-            enemy.mesh.position.y += enemy.destination.y * enemy.speed;
-            enemy.mesh.position.z += enemy.destination.z * enemy.speed;
-            if(enemy.mesh.position.y < 0){
-                scene.remove(enemy.mesh);
-                enemy.use = false;
-                enemiesPool.push(enemy);
-            }else{
+                let enemy = this.enemiesInUse[i];
+                if(!enemy.use) continue;
+                enemy.life -= 1;
                 let diffPos = airPlane.mesh.position.clone().sub(enemy.mesh.position.clone());
                 let d = diffPos.length();
-                if (d <= 100) {
+                if(enemy.life <= 0){
                     this.mesh.remove(enemy.mesh);
                     enemy.use = false;
-                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, Colors.red , 10, "explode");
+                }else if (d <= game.enemyDistanceTolerance) {
+                    this.mesh.remove(enemy.mesh);
+                    enemy.use = false;
+                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, Colors.blue, 10, "explode");
                     enemiesPool.push(enemy);
                 }
             }
         }
-    }
 }
 
 class Particle{
@@ -1161,6 +1181,7 @@ class AirPlane {
     constructor() {
         this.mesh = new THREE.Object3D();
         this.mesh.name = "airPlane";
+        this.life = game.energy;
 
         // Cabin
 
