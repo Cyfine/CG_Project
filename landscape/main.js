@@ -14,7 +14,7 @@ var Colors = {
 //==================== scene control ==========================
 var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
-    renderer, container, controls, enemiesHolder, weather;
+    renderer, container, controls, enemiesHolder, weather, particlesHolder;
 //==================== landscape control ==========================
 let chunkSize = 500;
 let chunkSegments = 25;
@@ -25,6 +25,8 @@ let samplingScale = 1;
 let loadDistance = 3;
 let destructionDist = 6;
 let chunkLoader;
+let enemiesPool = [];
+let particlesPool = [];
 
 const textureLoader = new THREE.TextureLoader();
 const waterBaseColor = textureLoader.load("./textures/water/Water_002_COLOR.jpg");
@@ -101,6 +103,8 @@ function init() {
     createWeather();
     //testChunk();
     createAirPlane();
+    createEnemies();
+    createParticles();
     chunkLoader = new ChunkLoader(loadDistance);
 
     // let test = new BoxTree(Colors.red).mesh;
@@ -472,6 +476,14 @@ function loop() {
     sinBuffer = Math.sin((clock.getElapsedTime() / 4));
     //<------------------season update------------------>
 
+    //<------------------Enemy update------------------>
+    if(Math.random() > 0.9){
+        enemiesHolder.spawnEnemies();
+        //scene.add();
+    }
+    enemiesHolder.rotateEnemies();
+    //<------------------Enemy update------------------>
+
     chunkLoader.generateChunk();
 
     renderer.render(scene, camera);
@@ -618,154 +630,144 @@ class EnemiesHolder {
     constructor() {
         this.mesh = new THREE.Object3D();
         this.enemiesInUse = []
-        this.enemiesPool = [];
-        this.spawnWidth = 700; // same as the width of the cylinder
-        this.cylinderRadius = 600; //  same as the radius of the terran cylinder
         this.sampY = 0;
         this.scale = 0.2;
+        this.height = 2000;
     }
 
-    spawnEnemies(color, type, size) {
-        let enemy;
-        for (let i = 0; i < level; i++) {
-            enemy = this.GenerateEnemy(size, color, type);
-            if (enemy.use === undefined) this.enemiesInUse.push(enemy);
+    spawnEnemies() {
+        for (let i = 0; i < 10; i++) {
+
+            let enemy;
+            if(enemiesPool.length > 0){
+                enemy = enemiesPool.pop();
+            }else{
+                enemy = new FireBall()
+            }
+
+            if(enemy.use === undefined) this.enemiesInUse.push(enemy);
             enemy.use = true;
-            let angle = Math.PI * 3 / 2;
-            enemy.angle = angle;
-            enemy.color = color;
-            enemy.type = type;
-            enemy.mesh.position.y = 630 * Math.sin(angle);
-            enemy.mesh.position.x = 630 * Math.cos(angle);
-            enemy.mesh.position.z = -350 + Math.random() * 700;
-            enemy.mesh.rotation.z = angle - Math.PI / 2;
-            enemy.mesh.scale.set(size, size, size);
+            let newX = airPlane.mesh.position.x + (Math.random() - 0.5) * this.height;
+            let newZ = airPlane.mesh.position.z + (Math.random() - 0.5) * this.height;
+            let desX = newX + (Math.random() - 0.5) * this.height;
+            let desZ = newZ + (Math.random() - 0.5) * this.height;
+            enemy.destination = new THREE.Vector3((desX - newX)/this.height, -1, (desZ - newZ)/this.height);
+            enemy.speed = Math.max(7, Math.random() * 20);
+            enemy.mesh.position.x = newX;
+            enemy.mesh.position.z = newZ;
+            enemy.mesh.position.y = this.height;
+            //enemy.mesh.scale.set(100, 100, 100);
             this.mesh.add(enemy.mesh);
         }
     }
-
-    spawnEnemiesPerlin() {
-        let tree;
-        for (let i = 0; i < level; i++) {
-
-            let zPos = -350 + Math.random() * 700;
-
-            // mapping the z position in sampling space of perlin noise
-            // z correspond to x in the 2d sampling space
-            let sampX = mapVal(zPos, -this.spawnWidth / 2, this.spawnWidth / 2,
-                -this.scale * this.spawnWidth / 2, this.scale * this.spawnWidth / 2)
-
-            // the generation score, with the generation score, we decide which
-            // kind of the tree to generate
-
-            let pnoise = noise.perlin2(sampX ,this.sampY);
-            let score = mapVal(pnoise, -1, 1, 0, 1);
-            // console.log(pnoise);
-            // console.log(score);
-            let distributionIdx = fallInRange(score, [2, 1, 1, 1])
-            let treeDistribution = [
-                [8, 1, 3, 2],
-                [1, 8, 3, 2],
-                [2, 1, 3, 8],
-                [1, 1, 8, 2],
-            ];
-
-            let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
-            let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
-
-            let color = weather.getSeasonColor();
-            console.log(weather.getSeason());
-            let size = Math.max(Math.random() * 0.7, 0.3);
-            let type = types[treeTypeIdx]
-
-
-            // todo: make rules to define the size and color
-            tree = this.GenerateEnemy(size, color, types[treeTypeIdx]);
-            if (tree.use === undefined) this.enemiesInUse.push(tree);
-            tree.use = true;
-            let angle = Math.PI * 3 / 2;
-            tree.angle = angle;
-            tree.color = color;
-            tree.type = type;
-            tree.mesh.position.y = 630 * Math.sin(angle);
-            tree.mesh.position.x = 630 * Math.cos(angle);
-            tree.mesh.position.z = zPos;
-            tree.mesh.rotation.z = angle - Math.PI / 2;
-            tree.mesh.scale.set(size, size, size);
-            this.mesh.add(tree.mesh);
-        }
-
-
-    }
-
     rotateEnemies() {
-        // update the y coordinate in the noise sampling space when the
-        // cylinder rotates
-        // rotationSpeed/2PI * PI*R^2
-        this.sampY += game.rotateSpeed * Math.pow(this.cylinderRadius, 2);
-
-        for (let i = 0; i < this.enemiesInUse.length; i++) {
+        for(let i = 0; i < this.enemiesInUse.length; i++){
             let enemy = this.enemiesInUse[i];
-            if (enemy.use === false) continue;
-            enemy.angle += game.rotateSpeed * 3;
-            enemy.mesh.position.y = 630 * Math.sin(enemy.angle) - 600;
-            enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
-            enemy.mesh.rotation.z = enemy.angle - Math.PI / 2;
-            if (enemy.angle > 7 * Math.PI / 2) {
-                this.mesh.remove(enemy.mesh);
-                if(weather.getSeasonColor() === enemy.mesh.children[0].color){
-                    this.enemiesPool.push(enemy);
-                }
+            enemy.mesh.position.x += enemy.destination.x * enemy.speed;
+            enemy.mesh.position.y += enemy.destination.y * enemy.speed;
+            enemy.mesh.position.z += enemy.destination.z * enemy.speed;
+            if(enemy.mesh.position.y < 0){
+                scene.remove(enemy.mesh);
                 enemy.use = false;
-            }
-            if (car.scene) {
-                if(game.rotateSpeed < 1.2 * game.basicRotateSpeed) game.rotateSpeed += 0.00001;
-                let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
+                enemiesPool.push(enemy);
+            }else{
+                let diffPos = airPlane.mesh.position.clone().sub(enemy.mesh.position.clone());
                 let d = diffPos.length();
-                if (d <= game.enemyDistanceTolerance) {
-                    if (glassBreak!==undefined)
-                        glassBreak.play();
-                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
-                    if(weather.getSeasonColor() === enemy.mesh.children[0].color){
-                        this.enemiesPool.push(enemy);
-                    }
+                if (d <= 100) {
                     this.mesh.remove(enemy.mesh);
-
                     enemy.use = false;
-
-                    if(game.rotateSpeed >  - game.basicRotateSpeed){
-                        game.rotateSpeed -= 0.01;
-                    }
-                    game.life -= game.damage;
-                    ambientLight.intensity = 1.5;
+                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, Colors.red , 10, "explode");
+                    enemiesPool.push(enemy);
                 }
             }
         }
     }
+}
 
-    GenerateEnemy(size, color, type) {
-        let enemy;
-        for (let i = 0; i < enemiesPool.length; i++) {
-            let enemy = enemiesPool.pop();
-            if (enemy.color === color && enemy.type === type) {
-                enemy.mesh.scale.set(size, size, size);
-                return enemy;
+class Particle{
+    constructor() {
+        let geom = new THREE.TetrahedronGeometry(3,0);
+        let mat = new THREE.MeshPhongMaterial({
+            color:0x009999,
+            shininess:0,
+            specular:0xffffff,
+            shading:THREE.FlatShading
+        });
+        this.mesh = new THREE.Mesh(geom,mat);
+    }
+
+    explode = function(pos, color, scale){
+        let _this = this;
+        let _p = this.mesh.parent;
+        this.mesh.material.color = new THREE.Color( color);
+        this.mesh.material.needsUpdate = true;
+        this.mesh.scale.set(scale, scale, scale);
+        let targetX = pos.x + (-1 + Math.random()*2)*250;
+        let targetY = pos.y + (-1 + Math.random()*2)*250;
+        let targetZ = pos.z + (-1 + Math.random()*2)*250;
+        let speed = .6+Math.random()*.2;
+        TweenMax.to(this.mesh.rotation, speed, {x:Math.random()*12, y:Math.random()*12, z:Math.random()*12});
+        TweenMax.to(this.mesh.scale, speed, {x:.1, y:.1, z:.1});
+        TweenMax.to(this.mesh.position, speed, {x:targetX, y:targetY, z:targetZ, delay:Math.random() *.1, ease:Power1.easeOut, onComplete:function(){
+                if(_p) _p.remove(_this.mesh);
+                _this.mesh.scale.set(1,1,1);
+                particlesPool.unshift(_this);
+            }});
+    }
+
+    rise = function(pos, color, scale){
+        let _this = this;
+        let _p = this.mesh.parent;
+        this.mesh.material.color = new THREE.Color(color);
+        this.mesh.material.needsUpdate = true;
+        this.mesh.scale.set(scale, scale, scale);
+        let targetX = pos.x + (-1 + Math.random()*2)*10;
+        let targetY = pos.y + (-1 + Math.random()*2)*250;
+        let targetZ = pos.z + (-1 + Math.random()*2)*10;
+        let speed = 2.0 + Math.random()*.5;
+        TweenMax.to(this.mesh.rotation, speed, {x:Math.random()*12, y:Math.random()*12, z:Math.random()*12});
+        TweenMax.to(this.mesh.scale, speed, {x:.1, y:.1, z:.1});
+        TweenMax.to(this.mesh.position, speed, {x:targetX, y:targetY, z:targetZ, ease:Power1.easeOut, onComplete:function(){
+                if(_p) _p.remove(_this.mesh);
+                _this.mesh.scale.set(1,1,1);
+                particlesPool.unshift(_this);
+            }});
+    }
+}
+
+class ParticlesHolder {
+    constructor() {
+        this.mesh = new THREE.Object3D();
+        this.particlesInUse = [];
+    }
+
+    spawnParticles = function(pos, density, color, scale, type){
+        for (let i=0; i<density; i++){
+            let particle;
+            if (particlesPool.length) {
+                particle = particlesPool.pop();
+            }else{
+                particle = new Particle();
             }
-            enemiesPool.push(enemy);
+            this.mesh.add(particle.mesh);
+            particle.mesh.visible = true;
+            let _this = this;
+            particle.mesh.position.y = pos.y;
+            particle.mesh.position.x = pos.x;
+            particle.mesh.position.z = pos.z;
+            if(type === "explode"){
+                particle.explode(pos,color, scale);
+            }else{particle.rise(pos,color, scale);
+
+            }
         }
-        if (type === "ConeTree") {
-            enemy = new ConeTree((color));
-        } else if (type === "BoxTree") {
-            enemy = new BoxTree((color));
-        } else if (type === "ThreeConesTree") {
-            enemy = new ThreeConesTree((color));
-        } else if (type === "FiveConesTree") {
-            enemy = new FiveConesTree((color));
+    }
+
+    generateParticles = function(type){
+        let temp = particlesPool.length;
+        for(let i = 0; i < temp; i++){
+
         }
-        if (enemy) {
-            enemy.mesh.scale.set(size, size, size);
-        }
-        return enemy;
     }
 }
 
@@ -1109,6 +1111,20 @@ function Cloud() {
         cloud.rotation.z = Math.PI/2 * Math.random();
         this.mesh.add(cloud);
     }
+}
+
+function createEnemies() {
+    enemiesHolder = new EnemiesHolder();
+    scene.add(enemiesHolder.mesh)
+}
+
+function createParticles(){
+    for (let i=0; i<10; i++){
+        let particle = new Particle();
+        particlesPool.push(particle);
+    }
+    particlesHolder = new ParticlesHolder();
+    scene.add(particlesHolder.mesh)
 }
 
 

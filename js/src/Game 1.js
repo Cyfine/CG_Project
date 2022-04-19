@@ -513,7 +513,7 @@ let FiveConesTree = function (color) {
 class EnemiesHolder {
     constructor() {
         this.mesh = new THREE.Object3D();
-        this.enemiesInUse = []
+        this.enemiesInUse = [];
         this.enemiesPool = [];
         this.spawnWidth = 700; // same as the width of the cylinder
         this.cylinderRadius = 600; //  same as the radius of the terran cylinder
