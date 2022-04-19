@@ -81,9 +81,6 @@
         // randomly generate seed for the noise generator
         noise.seed(Math.random());
 
-        // add the lights
-        createLights();
-
         // add the objects
         //createPlane();
         createSea();
@@ -91,6 +88,7 @@
         createCar();
         createEnemies();
         createParticles();
+        createLights();
 
         // start a loop that will update the objects' positions
         // and render the scene on each frame
@@ -227,13 +225,11 @@
         camera.updateProjectionMatrix();
     }
 
-    var ambientLight, hemisphereLight, shadowLight;
+    var ambientLight, hemisphereLight, shadowLight, spotLight;
 
     function createLights() {
         ambientLight = new THREE.AmbientLight(0xdc8874, 0);
-
         hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, .8)
-
         // A directional light shines from a specific direction.
         // It acts like the sun, that means that all the rays produced are parallel.
         shadowLight = new THREE.DirectionalLight(0xffffff, .9);
@@ -257,11 +253,11 @@
         shadowLight.shadow.mapSize.width = 2048;
         shadowLight.shadow.mapSize.height = 2048;
 
-        // to activate the lights, just add them to the scene
         scene.add(hemisphereLight);
         scene.add(ambientLight);
-        //scene.add(new THREE.AmbientLight(0xffffff,.5));
         scene.add(shadowLight);
+        //scene.add(spotLight.target)
+        //scene.add(spotLight);
     }
 
     // First let's define a Sea object :
@@ -823,7 +819,6 @@
                     particlesHolder.spawnParticles(pos, 100 , Colors.red2, 20, "explode" );
                 }
             }
-            //particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
         }
     }
 

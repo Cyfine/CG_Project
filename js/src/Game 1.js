@@ -61,7 +61,7 @@ function resetGame() {
     game = {
         enemyDistanceTolerance: 70,
         life: 20,
-        damage: 7,
+        damage: 1,
         status: "start",
         point: 0,
         clock: new THREE.Clock(),
@@ -102,13 +102,13 @@ function createScene() {
     );
 
     // Set the position of the camera
-    camera.position.x = -100;
-    camera.position.z = 100;
-    camera.position.y = 400;
+    camera.position.x = -169;
+    camera.position.z = 272;
+    camera.position.y = 268;
 
-    camera.rotateY(-Math.PI * 0.5);
-    camera.rotateX(-Math.PI * 0.3);
-    //camera.rotateZ(Math.PI * 0.4);
+    camera.rotateY(-0.41633);
+    camera.rotateX(-0.7769);
+    camera.rotateZ(-0.4086);
 
     // Create the renderer
     renderer = new THREE.WebGLRenderer({
@@ -132,8 +132,6 @@ function createScene() {
     // container we created in the HTML
     container = document.getElementById('world');
     container.appendChild(renderer.domElement);
-
-    controls = new THREE.TrackballControls(camera);
 
     // Listen to the screen: if the user resizes it
     // we have to update the camera and the renderer size
@@ -569,6 +567,7 @@ class EnemiesHolder {
             let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
 
             let color = weather.getSeasonColor();
+            console.log(weather.getSeason());
             let size = Math.max(Math.random() * 0.7, 0.3);
             let type = types[treeTypeIdx]
 
@@ -620,7 +619,6 @@ class EnemiesHolder {
                     if (glassBreak!==undefined)
                         glassBreak.play();
                     particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
-                    console.log(enemy.mesh.children[0]);
                     if(weather.getSeasonColor() === enemy.mesh.children[0].color){
                         this.enemiesPool.push(enemy);
                     }
@@ -640,7 +638,7 @@ class EnemiesHolder {
 
     GenerateEnemy(size, color, type) {
         let enemy;
-        for (let i; i < enemiesPool.length; i++) {
+        for (let i = 0; i < enemiesPool.length; i++) {
             let enemy = enemiesPool.pop();
             if (enemy.color === color && enemy.type === type) {
                 enemy.mesh.scale.set(size, size, size);
@@ -1021,12 +1019,15 @@ function loop() {
     ambientLight.intensity += (.0 - ambientLight.intensity)*game.clock.getElapsedTime ()*0.005;
     sea.mesh.rotation.z += game.rotateSpeed;
     sky.mesh.rotation.z += .01;
-    if (Math.random() > 0.97 && game.rotateSpeed >= game.basicRotateSpeed) {
-        enemiesHolder.spawnEnemiesPerlin();
+    if(season){
+        if (Math.random() > 0.97 && game.rotateSpeed >= game.basicRotateSpeed) {
+            enemiesHolder.spawnEnemiesPerlin();
+        }
     }
 
     enemiesHolder.rotateEnemies();
     updateCar();
+
     if(game.status === "start"){
         updateDistance();
         updateEnergy();
@@ -1041,7 +1042,6 @@ function loop() {
     }
     weather.moveParticles();
     sinBuffer = Math.sin((game.clock.getElapsedTime())/4);
-    console.log(sea.mesh.children[0]);
     if(sea.mesh.children[0].material.color !== weather.getSeasonColor()){
         sea.mesh.children[0].material.color = new THREE.Color(weather.getSeasonColor());
     }
@@ -1049,8 +1049,6 @@ function loop() {
 
     // Rotate the propeller, the sea and the sky
     //airplane.propeller.rotation.x += 0.3;
-
-    controls.update();
 
     // render the scene
     renderer.render(scene, camera);
