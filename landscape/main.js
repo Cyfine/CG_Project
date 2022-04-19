@@ -396,7 +396,7 @@ let FireBall = function () {
     let material = new THREE.ShaderMaterial({
         uniforms: {},
         vertexShader: _fireballVS, fragmentShader: _fireballFS,
-    })
+    });
     this.mesh.add(new THREE.Mesh(ball, material));
 }
 
@@ -805,7 +805,7 @@ class Chunk {
 
         this.createTerrain(false);
         this.decorateTree();
-        this.createFireBall();
+        //this.createFireBall();
         // this.createWater2();
         this.createWater(); //using shader
         this.createWater3(); //using setY
@@ -977,27 +977,23 @@ class Chunk {
         this.waterMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 time:{type:'f', value: 1.0},
-
+                xt: {type:'f', value: this.x * this.size + this.size / 2},
+                zt: {type:'f', value: this.z * this.size + this.size / 2},
             },
             vertexShader: _VS, fragmentShader: _FS,
             side: THREE.DoubleSide,
             //flatShading: true,
-            //lights: true
             //opacity: 0.5,
             //shininess: 60,
         })
         let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
+        waterMesh.position.x = xT;
+        waterMesh.position.z = zT;
         waterMesh.receiveShadow = true;
-        //this.waterPlane.rotateX(-Math.PI / 2);
         waterMesh.rotation.x = -Math.PI/2;
-        const xTranslation = this.x * this.size + this.size / 2;
-        const zTranslation = this.z * this.size + this.size / 2;
-
-        waterMesh.position.x = xTranslation;
-        waterMesh.position.z = zTranslation;
         waterMesh.position.y = this.waterHeight;
         this.water = waterMesh;
-        this.mesh.add(waterMesh)
+        this.mesh.add(waterMesh);
     }
 
 
@@ -1050,33 +1046,6 @@ class Chunk {
         waterMesh.position.y = this.waterHeight-10;
         this.water = waterMesh;
         this.mesh.add(waterMesh)
-    }
-
-    updateWater(){
-        const time = Date.now();
-        for (let i = 0; i < this.water.geometry.attributes.position.count; i++) {
-            const noise1 = noise0.noise2D(
-                this.water.geometry.attributes.position.getX(i)  * 0.01 + time * 0.0003,
-                this.water.geometry.attributes.position.getY(i)  * 0.01 + time * 0.0003,
-                this.water.geometry.attributes.position.getZ(i)  * 0.01 + time * 0.0003,
-            ) * 5;
-            const noise2 = noise0.noise2D(
-                this.water.geometry.attributes.position.getX(i) * 0.02 + time * 0.00012,
-                this.water.geometry.attributes.position.getY(i) * 0.02 + time * 0.00015,
-                this.water.geometry.attributes.position.getZ(i)  * 0.02 + time * 0.00015,
-            ) * 4;
-            const noise3 = noise0.noise2D(
-                this.water.geometry.attributes.position.getX(i) * 0.009 + time * 0.00015,
-                this.water.geometry.attributes.position.getY(i) * 0.012 + time * 0.00009,
-                this.water.geometry.attributes.position.getZ(i)  * 0.015+ time * 0.00015,
-            ) * 4;
-            this.water.geometry.attributes.position.setZ(i, 50*(noise1 + noise2 + noise3));
-            //console.log(this.water.geometry.attributes.position.getZ(i));
-        }
-        this.water.geometry.verticesNeedUpdate = true;
-        this.water.geometry.normalsNeedUpdate = true;
-        this.water.geometry.computeVertexNormals();
-        this.water.geometry.computeFaceNormals();
     }
 
     updateWaterSurface() {
@@ -1317,9 +1286,9 @@ class AirPlane {
     }
 }
 
-let cherryCount, rainCount, leavesCount, flakeCount, cherry, rain, leaves, snow, season, cnt = 0,
+let cherryCount, rainCount, balloonsCount, flakeCount, cherry, rain, balloons, snow, season, cnt = 0,
     cherryGeometry, cherryMaterial, cherryMesh, cherryArray, rainGeometry, rainMaterial, rainMesh, rainArray,
-    leavesGeometry, leavesMaterial, leavesMesh, leavesArray, flakeGeometry, flakeMaterial, flakeMesh, flakeArray;
+    balloonGeometry, balloonMaterial, balloonMesh, balloonsArray, flakeGeometry, flakeMaterial, flakeMesh, flakeArray;
 const Spring = Symbol("Spring");
 const Summer = Symbol("summer");
 const Fall = Symbol("Fall");
@@ -1363,57 +1332,56 @@ class Weather {
         cherryArray = cherry.children;
     }
     updateCherry(){this.updateParticle(cherry, cherryArray, 1);}
-    endCherry(){if(cherryCount>0) cherryCount-=20; else scene.remove(cherry);}
 
     startRain(density){
         rainCount = density;
-        const radius = 0.8;
+        const radius = 1;
         const height = 2;
         const segments = 16;
-        rainGeometry = new THREE.ConeBufferGeometry(radius, height, segments); // radius
+        rainGeometry = new THREE.ConeBufferGeometry(radius, height, segments);
+        let rainGeometry2 = new THREE.SphereGeometry(radius);
         rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
         rain = new THREE.Group();
         for (let i = 0; i < rainCount; i++) {
+            let x = (Math.random() - 0.5) * 2000;
+            let y = (Math.random() - 0.5) * 4000;
+            let z = (Math.random() - 0.5) * 2000;
             rainMesh = new THREE.Mesh(rainGeometry, rainMaterial);
-            rainMesh.position.set(
-                (Math.random() - 0.5) * 2000,
-                (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 2000
-            );
-            rainMesh.rotation.set(0,0,Math.PI);
+            let rainMesh2 = new THREE.Mesh(rainGeometry2, rainMaterial);
+            rainMesh.position.set(x, y, z); //cone
+            rainMesh2.position.set(x,y-height/2,z); //sphere
             rain.add(rainMesh);
+            rain.add(rainMesh2);
         }
         scene.add(rain);
         rainArray = rain.children;
     }
-    updateRain(){this.updateParticle(rain, rainArray, 0.15);}
-    endRain(){if(rainCount>0) rainCount-=20; else scene.remove(rain);}
-
-    startLeaves(density){
-        leavesCount = density;
-        const points = [];
-        for (let i = 0; i < 10; ++i) {
-            points.push(new THREE.Vector2(Math.sin(i * 0.2) * 3 + 3, (i - 5) * .8));
-        }
-        leavesGeometry = new THREE.LatheBufferGeometry(points);
-        // const radius = 3;
-        // leavesGeometry =  new THREE.IcosahedronBufferGeometry(radius);// 20 sides，
-        leavesMaterial = new THREE.MeshNormalMaterial(); //fruit, color: 0xFB8806
-        leaves = new THREE.Group();
-        for (let i = 0; i < leavesCount; i++) {
-            leavesMesh = new THREE.Mesh(leavesGeometry, leavesMaterial);
-            leavesMesh.position.set(
-                (Math.random() - 0.5) * 2000,
-                (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 2000
-            );
-            leaves.add(leavesMesh);
-        }
-        scene.add(leaves);
-        leavesArray = leaves.children;
+    updateRain(){
+        this.updateParticle(rain, rainArray, 0);
     }
-    updateLeaves(){this.updateParticle(leaves, leavesArray, 1);}
-    endLeaves(){if(leavesCount>0) leavesCount-=20; else scene.remove(leaves);}
+
+    startBalloons(density){
+        balloonsCount = density;
+        balloonMaterial = new THREE.MeshNormalMaterial({});
+        let tubeGeo = new THREE.CylinderGeometry(1,1,50,32);
+        balloonGeometry = new THREE.SphereGeometry(20);
+        balloons = new THREE.Group();
+        for (let i = 0; i < balloonsCount; i++) {
+            let x = (Math.random() - 0.5) * 2000;
+            let y = (Math.random() - 0.5) * 4000;
+            let z = (Math.random() - 0.5) * 2000;
+            let tube = new THREE.Mesh(tubeGeo, balloonMaterial);
+            balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
+            tube.position.set(x,y,z);
+            tube.rotation.set(0,0,0);//-Math.PI/2
+            balloons.add(tube);
+            balloonMesh.position.set(x,y+40,z);
+            balloons.add(balloonMesh);
+        }
+        scene.add(balloons);
+        balloonsArray = balloons.children;
+    }
+    updateBalloons(){this.updateParticle(balloons, balloonsArray, 0);}
 
     startSnow(density){
         flakeCount = density;
@@ -1435,23 +1403,27 @@ class Weather {
         flakeArray = snow.children;
     }
     updateSnow(){this.updateParticle(snow, flakeArray, 1);}
-    endSnow(){if(flakeCount>0) flakeCount-=20; else scene.remove(snow);}
 
     updateParticle(particle, array, rotationSpeed){
         for (let i = 0; i < array.length / 2; i++) {
             array[i].rotation.x += 0.02 * rotationSpeed;
             array[i].rotation.z += 0.03 * rotationSpeed;
-            array[i].rotation.y += 0.01 * rotationSpeed;
+            array[i].rotation.y += 0.01;
             array[i].position.y -= 0.9;
+            array[i].position.x += 0.1;
+            array[i].position.z += 0.1;
             if (array[i].position.y < 0) {
                 array[i].position.y += 2000;
             }
+            particle.rotation.y += 0.0000002;
         }
         for (let i = array.length / 2; i < array.length; i++) {
             array[i].rotation.x -= 0.03 * rotationSpeed;
             array[i].rotation.z -= 0.02 * rotationSpeed;
-            array[i].rotation.y -= 0.03 * rotationSpeed;
+            array[i].rotation.y -= 0.03;
             array[i].position.y -= 0.8;
+            array[i].position.x -= 0.1;
+            array[i].position.z -= 0.1;
             if (array[i].position.y < -0) {
                 array[i].position.y += 2000;
             }
@@ -1468,7 +1440,7 @@ class Weather {
                 this.updateRain();
                 break;
             case Fall:
-                this.updateLeaves();
+                this.updateBalloons();
                 break;
             case Winter:
                 this.updateSnow();
@@ -1482,27 +1454,50 @@ class Weather {
 
     switchSeason(){
         if(cnt%4===0) {
-            season = Spring; this.startCherry(500); scene.remove(snow);
+            season = Spring; this.startCherry(300); scene.remove(snow);
             if(backgroundSound!==undefined) updateMusic("./music/Spring.mp3");
         }else if(cnt%4===1) {
             season = Summer; this.startRain(5000); scene.remove(cherry);
             if(backgroundSound!==undefined) updateMusic("./music/Summer.mp3");
         }else if(cnt%4===2) {
-            season = Fall; this.startLeaves(500); scene.remove(rain);
+            season = Fall; this.startBalloons(100); scene.remove(rain);
             if(backgroundSound!==undefined) updateMusic("./music/Fall.mp3");
         }else {
-            season = Winter; this.startSnow(5000); scene.remove(leaves);
+            season = Winter; this.startSnow(5000); scene.remove(balloons);
             if(backgroundSound!==undefined) updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
 }
+
+function colorGradient(x ,y){
+    var cols = [{
+        stop: 0,
+        color: new THREE.Color(0xf7b000)
+    }, {
+        stop: .25,
+        color: new THREE.Color(0xdd0080)
+    }, {
+        stop: .5,
+        color: new THREE.Color(0x622b85)
+    }, {
+        stop: .75,
+        color: new THREE.Color(0x007dae)
+    }, {
+        stop: 1,
+        color: new THREE.Color(0x77c8db)
+    }];
+}
 //==================== shaders ==========================
 const _VS = `uniform float time;
+uniform float xt;
+uniform float zt;
 varying float yPosition;
 void main(){
     float x = position.x;
     float y = position.y;
+    float xx = (position.x+xt);
+    float yy = (position.y+zt);
     float PI = 3.141592653589;
 
     float sx = 0.0;
@@ -1522,9 +1517,9 @@ void main(){
         }
         float l1 = 2.0 * PI / (0.5 + ti);//波长
         float s1 = 20.0 * 2.0 / l1;//速度
-        float x1 = 1.0 * dir.x * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
-        float y1 = 1.0 * dir.y * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
-        float z1 = 1.0 * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
+        float x1 = 1.0 * dir.x * sin(dot(normalize(dir),vec2(xx,yy)) * l1 + time * s1);
+        float y1 = 1.0 * dir.y * sin(dot(normalize(dir),vec2(xx,yy)) * l1 + time * s1);
+        float z1 = 1.0 * sin(dot(normalize(dir),vec2(xx,yy)) * l1 + time * s1);
         sx +=x1;
         sy +=y1;
         sz +=z1;
