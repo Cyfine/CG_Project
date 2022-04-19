@@ -390,7 +390,7 @@ let FiveConesTree = function (color) {
     this.mesh.add(s);
 }
 
-let FireBall = function (color) {
+let FireBall = function () {
     this.mesh = new THREE.Object3D();
     let ball = new THREE.SphereGeometry(50);
     let material = new THREE.ShaderMaterial({
@@ -614,6 +614,161 @@ class ChunkLoader {
 
 }
 
+class EnemiesHolder {
+    constructor() {
+        this.mesh = new THREE.Object3D();
+        this.enemiesInUse = []
+        this.enemiesPool = [];
+        this.spawnWidth = 700; // same as the width of the cylinder
+        this.cylinderRadius = 600; //  same as the radius of the terran cylinder
+        this.sampY = 0;
+        this.scale = 0.2;
+    }
+
+    spawnEnemies(color, type, size) {
+        let enemy;
+        for (let i = 0; i < level; i++) {
+            enemy = this.GenerateEnemy(size, color, type);
+            if (enemy.use === undefined) this.enemiesInUse.push(enemy);
+            enemy.use = true;
+            let angle = Math.PI * 3 / 2;
+            enemy.angle = angle;
+            enemy.color = color;
+            enemy.type = type;
+            enemy.mesh.position.y = 630 * Math.sin(angle);
+            enemy.mesh.position.x = 630 * Math.cos(angle);
+            enemy.mesh.position.z = -350 + Math.random() * 700;
+            enemy.mesh.rotation.z = angle - Math.PI / 2;
+            enemy.mesh.scale.set(size, size, size);
+            this.mesh.add(enemy.mesh);
+        }
+    }
+
+    spawnEnemiesPerlin() {
+        let tree;
+        for (let i = 0; i < level; i++) {
+
+            let zPos = -350 + Math.random() * 700;
+
+            // mapping the z position in sampling space of perlin noise
+            // z correspond to x in the 2d sampling space
+            let sampX = mapVal(zPos, -this.spawnWidth / 2, this.spawnWidth / 2,
+                -this.scale * this.spawnWidth / 2, this.scale * this.spawnWidth / 2)
+
+            // the generation score, with the generation score, we decide which
+            // kind of the tree to generate
+
+            let pnoise = noise.perlin2(sampX ,this.sampY);
+            let score = mapVal(pnoise, -1, 1, 0, 1);
+            // console.log(pnoise);
+            // console.log(score);
+            let distributionIdx = fallInRange(score, [2, 1, 1, 1])
+            let treeDistribution = [
+                [8, 1, 3, 2],
+                [1, 8, 3, 2],
+                [2, 1, 3, 8],
+                [1, 1, 8, 2],
+            ];
+
+            let treeTypeIdx = drawTypeFromDistribution(treeDistribution[distributionIdx]);
+            let types = ["BoxTree", "ConeTree", "ThreeConesTree", "FiveConesTree"];
+
+            let color = weather.getSeasonColor();
+            console.log(weather.getSeason());
+            let size = Math.max(Math.random() * 0.7, 0.3);
+            let type = types[treeTypeIdx]
+
+
+            // todo: make rules to define the size and color
+            tree = this.GenerateEnemy(size, color, types[treeTypeIdx]);
+            if (tree.use === undefined) this.enemiesInUse.push(tree);
+            tree.use = true;
+            let angle = Math.PI * 3 / 2;
+            tree.angle = angle;
+            tree.color = color;
+            tree.type = type;
+            tree.mesh.position.y = 630 * Math.sin(angle);
+            tree.mesh.position.x = 630 * Math.cos(angle);
+            tree.mesh.position.z = zPos;
+            tree.mesh.rotation.z = angle - Math.PI / 2;
+            tree.mesh.scale.set(size, size, size);
+            this.mesh.add(tree.mesh);
+        }
+
+
+    }
+
+    rotateEnemies() {
+        // update the y coordinate in the noise sampling space when the
+        // cylinder rotates
+        // rotationSpeed/2PI * PI*R^2
+        this.sampY += game.rotateSpeed * Math.pow(this.cylinderRadius, 2);
+
+        for (let i = 0; i < this.enemiesInUse.length; i++) {
+            let enemy = this.enemiesInUse[i];
+            if (enemy.use === false) continue;
+            enemy.angle += game.rotateSpeed * 3;
+            enemy.mesh.position.y = 630 * Math.sin(enemy.angle) - 600;
+            enemy.mesh.position.x = 630 * Math.cos(enemy.angle);
+            enemy.mesh.rotation.z = enemy.angle - Math.PI / 2;
+            if (enemy.angle > 7 * Math.PI / 2) {
+                this.mesh.remove(enemy.mesh);
+                if(weather.getSeasonColor() === enemy.mesh.children[0].color){
+                    this.enemiesPool.push(enemy);
+                }
+                enemy.use = false;
+            }
+            if (car.scene) {
+                if(game.rotateSpeed < 1.2 * game.basicRotateSpeed) game.rotateSpeed += 0.00001;
+                let diffPos = car.scene.position.clone().sub(enemy.mesh.position.clone());
+                let d = diffPos.length();
+                if (d <= game.enemyDistanceTolerance) {
+                    if (glassBreak!==undefined)
+                        glassBreak.play();
+                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), (enemy.mesh.scale.x/0.7) * 20, enemy.color, (enemy.mesh.scale.x/0.7) * 20, "explode");
+                    if(weather.getSeasonColor() === enemy.mesh.children[0].color){
+                        this.enemiesPool.push(enemy);
+                    }
+                    this.mesh.remove(enemy.mesh);
+
+                    enemy.use = false;
+
+                    if(game.rotateSpeed >  - game.basicRotateSpeed){
+                        game.rotateSpeed -= 0.01;
+                    }
+                    game.life -= game.damage;
+                    ambientLight.intensity = 1.5;
+                }
+            }
+        }
+    }
+
+    GenerateEnemy(size, color, type) {
+        let enemy;
+        for (let i = 0; i < enemiesPool.length; i++) {
+            let enemy = enemiesPool.pop();
+            if (enemy.color === color && enemy.type === type) {
+                enemy.mesh.scale.set(size, size, size);
+                return enemy;
+            }
+            enemiesPool.push(enemy);
+        }
+        if (type === "ConeTree") {
+            enemy = new ConeTree((color));
+        } else if (type === "BoxTree") {
+            enemy = new BoxTree((color));
+        } else if (type === "ThreeConesTree") {
+            enemy = new ThreeConesTree((color));
+        } else if (type === "FiveConesTree") {
+            enemy = new FiveConesTree((color));
+        }
+        if (enemy) {
+            enemy.mesh.scale.set(size, size, size);
+        }
+        return enemy;
+    }
+}
+
 /**
  * class attributes:
  * x, y: the chunk coordinate (not world)
@@ -711,14 +866,6 @@ class Chunk {
 
     }
 
-
-    createFireBall(){
-        let temp = new FireBall(Colors.red).mesh;
-        temp.scale.set(400,400,400);
-        temp.position.set(-300,1000,-6)
-        scene.add(temp);
-        console.log(temp);
-    }
 
     decorateTree() {
         let treeAmt = 0;
