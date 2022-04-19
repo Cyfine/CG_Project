@@ -42,7 +42,7 @@ let waterMaterial, waterMesh;
 //     aoMap: waterAmbientOcclusion
 // });
 const _VS = `uniform float time;
-
+varying float yPosition;
 void main(){
     float x = position.x;
     float y = position.y;
@@ -74,11 +74,18 @@ void main(){
     }
     sx = x + sx;
     sy = y + sy;
+    yPosition = sz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(sx,sy,sin(sz) * 10.0,1.0);
 }`;
-const _FS = `void main(){
-            gl_FragColor = vec4(90./255.,160./255.,248./255.,1.0);      
-        }`;
+//
+const _FS = `
+varying float yPosition;
+void main()
+{
+  vec3 white = vec3(255.,255.,255.);
+  vec3 blue = vec3(90./255.,160./255.,248./255.);
+  gl_FragColor = vec4(vec3(blue+0.0001*yPosition*white), 1);
+}`;
 
 //==================== airplane control ==========================
 let airPlane;
@@ -254,7 +261,7 @@ function handlePlayAudio(){
 }
 
 function updateMusic(musicName){
-    backgroundSound.stop();
+    if (musicFlag===false&&backgroundSound!==null) backgroundSound.stop();
     // instantiate a loader
     const audioLoader = new THREE.AudioLoader();
     // instantiate audio object
@@ -545,8 +552,6 @@ class ChunkLoader {
                 chunk.destroy();
             }
             else{
-                chunk.updateWater();
-                //fixme
                 if(chunk.waterMaterial){
                     chunk.waterMaterial.uniforms.time.value += 0.01;
                 }
@@ -682,7 +687,7 @@ class Chunk {
         this.decorateTree();
         // this.createWater2();
         this.createWater(); //using shader
-        //this.createWater3(); //using setY
+        this.createWater3(); //using setY
     }
 
 
@@ -849,16 +854,19 @@ class Chunk {
         this.waterMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 time:{type:'f', value: 1.0},
+
             },
             vertexShader: _VS, fragmentShader: _FS,
-            // color: 0x197FF,
             side: THREE.DoubleSide,
-            wireframe: true
-            // opacity: 0.5
+            //flatShading: true,
+            //lights: true
+            //opacity: 0.5,
+            //shininess: 60,
         })
         let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
         waterMesh.receiveShadow = true;
-        this.waterPlane.rotateX(-Math.PI / 2);
+        //this.waterPlane.rotateX(-Math.PI / 2);
+        waterMesh.rotation.x = -Math.PI/2;
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
 
@@ -903,12 +911,10 @@ class Chunk {
     }
 
     createWater3(){
-        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
-        let material = new THREE.MeshLambertMaterial({
-            color: 0x197FF,
+        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, 1, 1);
+        let material = new THREE.MeshBasicMaterial({
+            color: 0x2B90FF,
             side: THREE.DoubleSide,
-            // shininess: 60,
-            opacity: 0.5
         });
         waterMesh = new THREE.Mesh(plane, material);
         waterMesh.receiveShadow = true;
@@ -918,7 +924,7 @@ class Chunk {
 
         waterMesh.position.x = xTranslation;
         waterMesh.position.z = zTranslation;
-        waterMesh.position.y = this.waterHeight;
+        waterMesh.position.y = this.waterHeight-10;
         this.water = waterMesh;
         this.mesh.add(waterMesh)
     }
@@ -941,7 +947,7 @@ class Chunk {
                 this.water.geometry.attributes.position.getY(i) * 0.012 + time * 0.00009,
                 this.water.geometry.attributes.position.getZ(i)  * 0.015+ time * 0.00015,
             ) * 4;
-            this.water.geometry.attributes.position.setZ(i, 100*(noise1 + noise2 + noise3));
+            this.water.geometry.attributes.position.setZ(i, 50*(noise1 + noise2 + noise3));
             //console.log(this.water.geometry.attributes.position.getZ(i));
         }
         this.water.geometry.verticesNeedUpdate = true;
@@ -1199,7 +1205,26 @@ const Winter = Symbol("winter");
 class Weather {
     startCherry(density) {
         cherryCount = density;
-        cherryGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        const shape = new THREE.Shape();
+        const x = -1;
+        const y = -2;
+        shape.moveTo(x + 1, y + 1);
+        shape.bezierCurveTo(x + 1, y + 1, x + 0.8, y, x, y);
+        shape.bezierCurveTo(x - 1.2, y, x - 1.2, y + 1.4, x - 1.2, y + 1.4);
+        shape.bezierCurveTo(x - 1.2, y + 2.2, x - 0.6, y + 3.08, x + 1, y + 3.8);
+        shape.bezierCurveTo(x + 2.4, y + 3.08, x + 8, y + 4.5, x + 3.2, y + 3.5);
+        shape.bezierCurveTo(x + 1.4, y + 1.4, x + 8, y, x + 5, y);
+        shape.bezierCurveTo(x + 1.4, y, x + 1, y + 1, x + 1, y + 1);
+
+        const extrudeSettings = {
+            steps: 2,
+            depth: 2,
+            bevelEnabled: true,
+            bevelThickness: 1,
+            bevelSize: 1,
+            bevelSegments: 2,
+        };
+        cherryGeometry = new THREE.ExtrudeBufferGeometry(shape, extrudeSettings); // radius
         cherryMaterial = new THREE.MeshBasicMaterial({color: 0xFFC0CB});
         cherry = new THREE.Group();
         for (let i = 0; i < cherryCount; i++) {
@@ -1219,7 +1244,7 @@ class Weather {
 
     startRain(density){
         rainCount = density;
-        rainGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        rainGeometry = new THREE.SphereGeometry(1.5); // radius
         rainMaterial = new THREE.MeshBasicMaterial({color: Colors.blue});
         rain = new THREE.Group();
         for (let i = 0; i < rainCount; i++) {
@@ -1239,7 +1264,7 @@ class Weather {
 
     startLeaves(density){
         leavesCount = density;
-        leavesGeometry = new THREE.TetrahedronGeometry(1.5); // radius
+        leavesGeometry = new THREE.BoxGeometry(1.5,1.5,1.5); // radius
         leavesMaterial = new THREE.MeshBasicMaterial({color: 0xFB8806,});
         leaves = new THREE.Group();
         for (let i = 0; i < leavesCount; i++) {
@@ -1325,16 +1350,16 @@ class Weather {
     switchSeason(){
         if(cnt%4===0) {
             season = Spring; this.startCherry(5000); scene.remove(snow);
-            if(backgroundSound!== undefined) updateMusic("./music/Spring.mp3");
+            if(backgroundSound!==undefined) updateMusic("./music/Spring.mp3");
         }else if(cnt%4===1) {
             season = Summer; this.startRain(5000); scene.remove(cherry);
-            if(backgroundSound!== undefined) updateMusic("./music/Summer.mp3");
+            if(backgroundSound!==undefined) updateMusic("./music/Summer.mp3");
         }else if(cnt%4===2) {
             season = Fall; this.startLeaves(5000); scene.remove(rain);
-            if(backgroundSound!== undefined) updateMusic("./music/Fall.mp3");
+            if(backgroundSound!==undefined) updateMusic("./music/Fall.mp3");
         }else {
             season = Winter; this.startSnow(5000); scene.remove(leaves);
-            if(backgroundSound!== undefined) updateMusic("./music/Winter.mp3");
+            if(backgroundSound!==undefined) updateMusic("./music/Winter.mp3");
         }
         cnt++;
     }
