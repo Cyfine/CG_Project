@@ -710,8 +710,12 @@ class Chunk {
 
 
     }
-    createFireBall(){
 
+
+    createFireBall(){
+        let temp = new FireBall(Colors.red).mesh;
+        temp.scale.set(10000,10000,10000);
+        scene.add(temp);
     }
 
     decorateTree() {

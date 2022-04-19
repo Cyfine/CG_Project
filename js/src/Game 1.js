@@ -164,6 +164,9 @@ function handlePlayAudio(){
 }
 
 function updateMusic(musicName){
+    if(!backgroundSound){
+        return;
+    }
     backgroundSound.stop();
     // instantiate a loader
     const audioLoader = new THREE.AudioLoader();
