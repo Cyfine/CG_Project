@@ -33,14 +33,52 @@ const waterHeightMap = textureLoader.load("./textures/water/Water_002_DISP.png")
 const waterRoughness = textureLoader.load("./textures/water/Water_002_ROUGH.jpg");
 const waterAmbientOcclusion = textureLoader.load("./textures/water/Water_002_OCC.jpg");
 
-let waterMesh;
-let waterMaterial = new THREE.MeshStandardMaterial({
-    map: waterBaseColor,
-    normalMap: waterNormalMap,
-    displacementMap: waterHeightMap, displacementScale: 0.01,
-    roughnessMap: waterRoughness, roughness: 0,
-    aoMap: waterAmbientOcclusion
-});
+let waterMaterial, waterMesh;
+// let waterMaterial = new THREE.MeshStandardMaterial({
+//     map: waterBaseColor,
+//     normalMap: waterNormalMap,
+//     displacementMap: waterHeightMap, displacementScale: 0.01,
+//     roughnessMap: waterRoughness, roughness: 0,
+//     aoMap: waterAmbientOcclusion
+// });
+const _VS = `uniform float time;
+
+void main(){
+    float x = position.x;
+    float y = position.y;
+    float PI = 3.141592653589;
+
+    float sx = 0.0;
+    float sy = 0.0;
+    float sz = 0.0;
+
+    float ti = 0.0;
+    float index = 1.0;
+    vec2 dir;//水波方向
+    for(int i = 0;i<3;i++){
+        ti = ti + 0.0005;
+        index +=1.0;
+        if(mod(index,2.0)==0.0){
+            dir = vec2(1.0,ti);
+        }else{
+            dir = vec2(-1.0,ti);
+        }
+        float l1 = 2.0 * PI / (0.5 + ti);//波长
+        float s1 = 20.0 * 2.0 / l1;//速度
+        float x1 = 1.0 * dir.x * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
+        float y1 = 1.0 * dir.y * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
+        float z1 = 1.0 * sin(dot(normalize(dir),vec2(x,y)) * l1 + time * s1);
+        sx +=x1;
+        sy +=y1;
+        sz +=z1;
+    }
+    sx = x + sx;
+    sy = y + sy;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(sx,sy,sin(sz) * 10.0,1.0);
+}`;
+const _FS = `void main(){
+            gl_FragColor = vec4(90./255.,160./255.,248./255.,1.0);      
+        }`;
 
 //==================== airplane control ==========================
 let airPlane;
@@ -463,7 +501,7 @@ function loop() {
     //<------------------season update------------------>
 
     chunkLoader.generateChunk();
-    waterMesh.geometry.verticesNeedUpdate = true;
+
     renderer.render(scene, camera);
 
     // call the loop function again
@@ -508,10 +546,11 @@ class ChunkLoader {
             }
             else{
                 chunk.updateWater();
+                //fixme
+                if(chunk.waterMaterial){
+                    chunk.waterMaterial.uniforms.time.value += 0.01;
+                }
             }
-            // else{
-            //     chunk.updateWaterSurface();
-            // }
         }
 
         if (this.key(currentChunk[0], currentChunk[1]) === this.key(this.lastVisitChunk[0], this.lastVisitChunk[1])) {
@@ -642,7 +681,8 @@ class Chunk {
         this.createTerrain(false);
         this.decorateTree();
         // this.createWater2();
-        this.createWater();
+        this.createWater(); //using shader
+        //this.createWater3(); //using setY
     }
 
 
@@ -803,18 +843,22 @@ class Chunk {
         this.mesh.add(water);
     }
 
-
+    //let waterMesh, waterMaterial, waterPlane;
     createWater() {
-        const plane = new THREE.PlaneGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
-        let material = new THREE.MeshLambertMaterial({
-            color: 0x197FF,
+        this.waterPlane = new THREE.PlaneGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
+        this.waterMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                time:{type:'f', value: 1.0},
+            },
+            vertexShader: _VS, fragmentShader: _FS,
+            // color: 0x197FF,
             side: THREE.DoubleSide,
-            // shininess: 60,
-            opacity: 0.5
-        });
-        waterMesh = new THREE.Mesh(plane, material);
+            wireframe: true
+            // opacity: 0.5
+        })
+        let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
         waterMesh.receiveShadow = true;
-        plane.rotateX(-Math.PI / 2);
+        this.waterPlane.rotateX(-Math.PI / 2);
         const xTranslation = this.x * this.size + this.size / 2;
         const zTranslation = this.z * this.size + this.size / 2;
 
@@ -858,6 +902,27 @@ class Chunk {
         this.mesh.add(waterMesh)
     }
 
+    createWater3(){
+        const plane = new THREE.PlaneBufferGeometry(this.size, this.size, this.segments / 4, this.segments / 4);
+        let material = new THREE.MeshLambertMaterial({
+            color: 0x197FF,
+            side: THREE.DoubleSide,
+            // shininess: 60,
+            opacity: 0.5
+        });
+        waterMesh = new THREE.Mesh(plane, material);
+        waterMesh.receiveShadow = true;
+        plane.rotateX(-Math.PI / 2);
+        const xTranslation = this.x * this.size + this.size / 2;
+        const zTranslation = this.z * this.size + this.size / 2;
+
+        waterMesh.position.x = xTranslation;
+        waterMesh.position.z = zTranslation;
+        waterMesh.position.y = this.waterHeight;
+        this.water = waterMesh;
+        this.mesh.add(waterMesh)
+    }
+
     updateWater(){
         const time = Date.now();
         for (let i = 0; i < this.water.geometry.attributes.position.count; i++) {
@@ -876,35 +941,13 @@ class Chunk {
                 this.water.geometry.attributes.position.getY(i) * 0.012 + time * 0.00009,
                 this.water.geometry.attributes.position.getZ(i)  * 0.015+ time * 0.00015,
             ) * 4;
-            this.water.geometry.attributes.position.setZ(i, 1000*(noise1 + noise2 + noise3));
+            this.water.geometry.attributes.position.setZ(i, 100*(noise1 + noise2 + noise3));
             //console.log(this.water.geometry.attributes.position.getZ(i));
         }
-        waterMesh.geometry.verticesNeedUpdate = true;
-        waterMesh.geometry.normalsNeedUpdate = true;
-        waterMesh.geometry.computeVertexNormals();
-        waterMesh.geometry.computeFaceNormals();
-        // waterMesh.geometry.vertices.forEach(function(vertex) {
-        //     const noise1 = noise.noise2D(
-        //         vertex.x * 0.01 + time * 0.0003,
-        //         vertex.y * 0.01 + time * 0.0003,
-        //         vertex.z * 0.01 + time * 0.0003,
-        //     ) * 5;
-        //     const noise2 = noise.noise2D(
-        //         vertex.x * 0.02 + time * 0.00012,
-        //         vertex.y * 0.02 + time * 0.00015,
-        //         vertex.z * 0.02 + time * 0.00015,
-        //     ) * 4;
-        //     const noise3 = noise.noise2D(
-        //         vertex.x * 0.009 + time * 0.00015,
-        //         vertex.y * 0.012 + time * 0.00009,
-        //         vertex.z * 0.015 + time * 0.00015,
-        //     ) * 4;
-        //     vertex.z = (noise1 + noise2 + noise3);
-        // })
-        // waterMesh.geometry.verticesNeedUpdate = true;
-        // waterMesh.geometry.normalsNeedUpdate = true;
-        // waterMesh.geometry.computeVertexNormals();
-        // waterMesh.geometry.computeFaceNormals();
+        this.water.geometry.verticesNeedUpdate = true;
+        this.water.geometry.normalsNeedUpdate = true;
+        this.water.geometry.computeVertexNormals();
+        this.water.geometry.computeFaceNormals();
     }
 
     updateWaterSurface() {
