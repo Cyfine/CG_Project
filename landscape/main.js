@@ -45,6 +45,10 @@ let waterMaterial, waterMesh;
 //     aoMap: waterAmbientOcclusion
 // });
 
+//==================== html elements ==========================
+let fieldDistance, energyBar, replayMessage;
+//==================== html elements ==========================
+
 //==================== airplane control ==========================
 let airPlane;
 const clock = new THREE.Clock();
@@ -107,7 +111,15 @@ function resetGame() {
         energyLastTime: 1000,
         energyGenerateSpeed: 20,
         energyGeneratePossibility: 0.1,
-        energyLost: 2,
+        energyLost: 0.1,
+        score: 0,
+        bluePoints: 10,
+        goldenPoints: 100,
+    }
+
+    if(airPlane){
+        airPlane.life = game.energy;
+        scene.add(airPlane.mesh);
     }
 }
 
@@ -132,6 +144,12 @@ function init() {
     // scene.add(test)
 
     document.addEventListener('mousemove', handleMousemove, false);
+    document.addEventListener('touchend', handleTouchEnd, false);
+    document.addEventListener('mouseup', handleMouseUp, false);
+    fieldDistance = document.getElementById("distValue");
+    energyBar = document.getElementById("energyBar");
+    replayMessage = document.getElementById("replayMessage");
+
 
     loop();
 }
@@ -211,6 +229,25 @@ function createScene() {
     // we have to update the camera and the renderer size
     window.addEventListener('resize', handleWindowResize, false);
     window.addEventListener('click', handlePlayAudio, false);
+}
+
+function handleTouchEnd(event){
+    console.log("111");
+    if (game.status === "restart"){
+        resetGame();
+        hideReplay();
+    }
+}
+
+function handleMouseUp(event){
+    if (game.status === "restart"){
+        resetGame();
+        hideReplay();
+    }
+}
+
+function hideReplay(){
+    replayMessage.style.display="none";
 }
 
 function handlePlayAudio(){
@@ -431,7 +468,6 @@ function updateAirPlaneControl() {
     const rotateAngle = Math.PI / 2 * delta;
     airPlane.updatePropeller();
     airPlane.mesh.translateZ(-moveDistance);
-    airPlane.life -= game.energyLost;
 
     // airPlane.mesh.rotateY(Math.PI/2);
     if (keyboard.pressed("down")) {
@@ -480,6 +516,10 @@ function createWeather() {
     weather = new Weather();
 }
 
+function showReplay(){
+    replayMessage.style.display="block";
+}
+
 let sinBuffer;
 
 function loop() {
@@ -489,10 +529,16 @@ function loop() {
     // render the scene
     if(airPlane.life > 0){
         updateAirPlaneControl();
+        airPlane.updateEnergy();
+        airPlane.updateScore();
     }else if(airPlane.life <= 0 && game.status === "start"){
         particlesHolder.spawnParticles(airPlane.mesh.position.clone(), 15, Colors.red , 10, "explode");
         scene.remove(airPlane.mesh);
         game.status = "restart";
+    }
+
+    if(game.status === "restart"){
+        showReplay();
     }
 
     //<------------------season update------------------>
@@ -704,6 +750,9 @@ class EnemiesHolder {
                 }else if (d <= game.enemyDistanceTolerance) {
                     this.mesh.remove(enemy.mesh);
                     enemy.use = false;
+                    airPlane.life += 10;
+                    airPlane.life = Math.min(airPlane.life, 100);
+                    game.score += game.bluePoints;
                     particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, Colors.blue, 10, "explode");
                     enemiesPool.push(enemy);
                 }
@@ -1333,6 +1382,18 @@ class AirPlane {
 
     updatePropeller() {
         this.propeller.rotation.z += 0.3;
+    }
+
+    updateEnergy(){
+        airPlane.life -= game.energyLost;
+        airPlane.life = Math.max(0, airPlane.life);
+        energyBar.style.right = (100-airPlane.life)+"%";
+        energyBar.style.backgroundColor = (airPlane.life<50)? "#f25346" : "#68c3c0";
+    }
+
+    updateScore(){
+        game.score += 0.1;
+        fieldDistance.innerHTML = Math.floor(game.score);
     }
 }
 

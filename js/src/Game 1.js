@@ -16,6 +16,8 @@ var scene,
     camera, fieldOfView, aspectRatio, nearPlane, farPlane, HEIGHT, WIDTH,
     renderer, container, controls, enemiesHolder, particlesHolder;
 
+let fieldDistance, energyBar, replayMessage;
+
 var musicFlag = true;
 var backgroundSound, audioListener, glassBreak;
 
@@ -812,7 +814,6 @@ function updateCar() {
     }
 }
 
-var fieldDistance, energyBar, replayMessage;
 
 function updateDistance(){
     game.distance = 630 * (game.basicRotateSpeed/(Math.PI*2)) * game.clock.getElapsedTime () * 10;
