@@ -766,7 +766,7 @@ class Particle{
         let mat = new THREE.MeshPhongMaterial({
             color:0xffd700,
             shininess:0,
-            specular:0xfffff,
+            specular:0xffffff,
             shading:THREE.FlatShading
         });
         this.mesh = new THREE.Mesh(geom,mat);
