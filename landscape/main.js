@@ -109,7 +109,7 @@ function resetGame() {
         point: 0,
         clock: new THREE.Clock(),
         energyLastTime: 1000,
-        energyGenerateSpeed: 20,
+        energyGenerateSpeed: 1,
         energyGeneratePossibility: 0.1,
         energyLost: 0.1,
         score: 0,
@@ -450,9 +450,9 @@ let FiveConesTree = function (color) {
 
 let FireBall = function () {
     this.mesh = new THREE.Object3D();
-    let ball = new THREE.OctahedronGeometry(6.0, 0);
+    let ball = new THREE.IcosahedronGeometry(6.0, 0);
     let material = new THREE.MeshPhongMaterial({
-        color: Colors.blue,
+        color: 0xffd700,
         transparent: true,
         opacity: .7,
         shading: THREE.FlatShading,
@@ -739,34 +739,34 @@ class EnemiesHolder {
 
     rotateEnemies() {
         for(let i = 0; i < this.enemiesInUse.length; i++){
-                let enemy = this.enemiesInUse[i];
-                if(!enemy.use) continue;
-                enemy.life -= 1;
-                let diffPos = airPlane.mesh.position.clone().sub(enemy.mesh.position.clone());
-                let d = diffPos.length();
-                if(enemy.life <= 0){
-                    this.mesh.remove(enemy.mesh);
-                    enemy.use = false;
-                }else if (d <= game.enemyDistanceTolerance) {
-                    this.mesh.remove(enemy.mesh);
-                    enemy.use = false;
-                    airPlane.life += 10;
-                    airPlane.life = Math.min(airPlane.life, 100);
-                    game.score += game.bluePoints;
-                    particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, Colors.blue, 10, "explode");
-                    enemiesPool.push(enemy);
-                }
+            let enemy = this.enemiesInUse[i];
+            if(!enemy.use) continue;
+            enemy.life -= 1;
+            let diffPos = airPlane.mesh.position.clone().sub(enemy.mesh.position.clone());
+            let d = diffPos.length();
+            if(enemy.life <= 0){
+                this.mesh.remove(enemy.mesh);
+                enemy.use = false;
+            }else if (d <= game.enemyDistanceTolerance) {
+                this.mesh.remove(enemy.mesh);
+                enemy.use = false;
+                airPlane.life += 20;
+                airPlane.life = Math.min(airPlane.life, 100);
+                game.score += game.bluePoints;
+                particlesHolder.spawnParticles(enemy.mesh.position.clone(), 15, 0xffd700, 10, "explode");
+                enemiesPool.push(enemy);
             }
         }
+    }
 }
 
 class Particle{
     constructor() {
-        let geom = new THREE.TetrahedronGeometry(3,0);
+        let geom = new THREE.IcosahedronGeometry(3,0);
         let mat = new THREE.MeshPhongMaterial({
-            color:0x009999,
+            color:0xffd700,
             shininess:0,
-            specular:0xffffff,
+            specular:0xfffff,
             shading:THREE.FlatShading
         });
         this.mesh = new THREE.Mesh(geom,mat);
@@ -1455,9 +1455,9 @@ class Weather {
         for (let i = 0; i < cherryCount; i++) {
             cherryMesh = new THREE.Mesh(cherryGeometry, cherryMaterial);
             cherryMesh.position.set(
-                (Math.random() - 0.5) * 1000 + xx,
-                (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 1000 + zz,
+                (Math.random() - 0.5) * 2000 + xx,
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000 + zz,
             );
             cherry.add(cherryMesh);
         }
@@ -1478,9 +1478,9 @@ class Weather {
         let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
         let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < rainCount; i++) {
-            let x = (Math.random() - 0.5) * 1000 + xx;
-            let y = (Math.random() - 0.5) * 4000;
-            let z = (Math.random() - 0.5) * 1000 + zz;
+            let x = (Math.random() - 0.5) * 2000 + xx;
+            let y = (Math.random() - 0.5) * 2000;
+            let z = (Math.random() - 0.5) * 2000 + zz;
             rainMesh = new THREE.Mesh(rainGeometry, rainMaterial);
             let rainMesh2 = new THREE.Mesh(rainGeometry2, rainMaterial);
             rainMesh.position.set(x, y, z); //cone
@@ -1500,13 +1500,14 @@ class Weather {
         balloonMaterial = new THREE.MeshNormalMaterial({});
         let tubeGeo = new THREE.CylinderGeometry(1,1,50,32);
         balloonGeometry = new THREE.SphereGeometry(20);
+        balloonGeometry.scale(1,1.5,1);
         balloons = new THREE.Group();
         let xx = chunkLoader.getCurrentChunkInstance().getDisplacementX();
         let zz = chunkLoader.getCurrentChunkInstance().getDisplacementZ();
         for (let i = 0; i < balloonsCount; i++) {
-            let x = (Math.random() - 0.5) * 1000 + xx;
-            let y = (Math.random() - 0.5) * 4000;
-            let z = (Math.random() - 0.5) * 1000 + zz;
+            let x = (Math.random() - 0.5) * 2000 + xx;
+            let y = (Math.random() - 0.5) * 2000;
+            let z = (Math.random() - 0.5) * 2000 + zz;
             let tube = new THREE.Mesh(tubeGeo, balloonMaterial);
             balloonMesh = new THREE.Mesh(balloonGeometry, balloonMaterial);
             tube.position.set(x,y,z);
@@ -1532,9 +1533,9 @@ class Weather {
         for (let i = 0; i < flakeCount; i++) {
             flakeMesh = new THREE.Mesh(flakeGeometry, flakeMaterial);
             flakeMesh.position.set(
-                (Math.random() - 0.5) * 1000 + xx,
-                (Math.random() - 0.5) * 4000,
-                (Math.random() - 0.5) * 1000 + zz
+                (Math.random() - 0.5) * 2000 + xx,
+                (Math.random() - 0.5) * 2000,
+                (Math.random() - 0.5) * 2000 + zz
             );
             snow.add(flakeMesh);
         }
@@ -1651,7 +1652,7 @@ void main(){
     yPosition = sz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(sx,sy,sin(sz) * 10.0,1.0);
 }`;
- const _FS = `
+const _FS = `
 varying float yPosition;
 void main()
 {
