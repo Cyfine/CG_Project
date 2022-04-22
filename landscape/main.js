@@ -56,7 +56,7 @@ const keyboard = new THREEx.KeyboardState();
 
 //==================== music ==========================
 var musicFlag = true;
-var backgroundSound, audioListener;
+var backgroundSound, audioListener, glassBreak;
 const noise0 = new SimplexNoise();
 
 
@@ -111,7 +111,7 @@ function resetGame() {
         energyLastTime: 1000,
         energyGenerateSpeed: 1,
         energyGeneratePossibility: 0.1,
-        energyLost: 0.1,
+        energyLost: 0.05,
         score: 0,
         bluePoints: 10,
         goldenPoints: 100,
@@ -270,6 +270,7 @@ function handlePlayAudio(){
             },
         );
         musicFlag = false;
+        energyAbsorbInit()
     }
 }
 
@@ -290,6 +291,17 @@ function updateMusic(musicName){
     );
 }
 
+function energyAbsorbInit(){
+    // instantiate a loader
+    const audioLoader = new THREE.AudioLoader();
+    glassBreak = new THREE.Audio(audioListener);
+    audioLoader.load("./music/Heal.wav", function(buffer){
+        glassBreak.setBuffer(buffer);
+        glassBreak.setLoop(false);
+        glassBreak.setVolume(0.6);
+    })
+}
+
 let hemisphereLight, shadowLight;
 
 function createLights() {
@@ -297,6 +309,7 @@ function createLights() {
     // the first parameter is the sky color, the second parameter is the ground color,
     // the third parameter is the intensity of the light
     hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000000, .9)
+    hemisphereLight.castShadow = true;
 
     // A directional light shines from a specific direction.
     // It acts like the sun, that means that all the rays produced are parallel.
@@ -455,7 +468,7 @@ let FireBall = function () {
         color: 0xffd700,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading:true,
     });
     this.mesh.add(new THREE.Mesh(ball, material));
     this.life = game.energyLastTime;
@@ -728,7 +741,7 @@ class EnemiesHolder {
             enemy.use = true;
             let newX = airPlane.mesh.position.x + (Math.random() - 0.5) * this.height;
             let newZ = airPlane.mesh.position.z + (Math.random() - 0.5) * this.height;
-            let newY =airPlane.mesh.position.z + (Math.random() - 0.5) * this.height
+            let newY =airPlane.mesh.position.y + (Math.random() - 0.5) * this.height
             enemy.mesh.position.x = newX;
             enemy.mesh.position.z = newZ;
             enemy.mesh.position.y = newY;
@@ -748,6 +761,7 @@ class EnemiesHolder {
                 this.mesh.remove(enemy.mesh);
                 enemy.use = false;
             }else if (d <= game.enemyDistanceTolerance) {
+                if (glassBreak!==undefined) glassBreak.play();
                 this.mesh.remove(enemy.mesh);
                 enemy.use = false;
                 airPlane.life += 20;
@@ -767,7 +781,7 @@ class Particle{
             color:0xffd700,
             shininess:0,
             specular:0xffffff,
-            shading:THREE.FlatShading
+            flatShading: true
         });
         this.mesh = new THREE.Mesh(geom,mat);
     }
@@ -885,8 +899,33 @@ class Chunk {
         this.decorateTree();
         //this.createFireBall();
         // this.createWater2();
+        // this.createLight()
         this.createWater(); //using shader
         this.createWater3(); //using setY
+    }
+
+    createLight(){
+        shadowLight = new THREE.DirectionalLight(0xffffff, .9);
+
+        // Set the direction of the light
+        shadowLight.position.set(150, 350, 350);
+
+        // Allow shadow casting
+        shadowLight.castShadow = true;
+
+        // define the visible area of the projected shadow
+        shadowLight.shadow.camera.left = -400;
+        shadowLight.shadow.camera.right = 400;
+        shadowLight.shadow.camera.top = 400;
+        shadowLight.shadow.camera.bottom = -400;
+        shadowLight.shadow.camera.near = 1;
+        shadowLight.shadow.camera.far = 1000;
+
+        // define the resolution of the shadow; the higher the better,
+        // but also the more expensive and less performant
+        shadowLight.shadow.mapSize.width = 2048;
+        shadowLight.shadow.mapSize.height = 2048;
+        this.mesh.add(shadowLight.target)
     }
 
     getDisplacementX(){
@@ -958,9 +997,9 @@ class Chunk {
             },
             vertexShader: _VS, fragmentShader: _FS,
             side: THREE.DoubleSide,
-            flatShading: true,
+            // flatShading: true,
             opacity: 0.5,
-            shininess: 60,
+            // shininess: 60,
         })
         let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
         const xT = this.x * this.size + this.size / 2; //translate
@@ -1378,6 +1417,30 @@ class AirPlane {
         this.mesh.receiveShadow = true;
 
 
+    }
+
+    createLight(){
+        shadowLight = new THREE.DirectionalLight(0xffffff, .9);
+        // Set the direction of the light
+        shadowLight.position.set(150, 350, 350);
+
+        // Allow shadow casting
+        shadowLight.castShadow = true;
+
+        // define the visible area of the projected shadow
+        shadowLight.shadow.camera.left = -400;
+        shadowLight.shadow.camera.right = 400;
+        shadowLight.shadow.camera.top = 400;
+        shadowLight.shadow.camera.bottom = -400;
+        shadowLight.shadow.camera.near = 1;
+        shadowLight.shadow.camera.far = 1000;
+
+        // define the resolution of the shadow; the higher the better,
+        // but also the more expensive and less performant
+        shadowLight.shadow.mapSize.width = 2048;
+        shadowLight.shadow.mapSize.height = 2048;
+
+        this.mesh
     }
 
     updatePropeller() {
