@@ -109,7 +109,7 @@ function resetGame() {
         point: 0,
         clock: new THREE.Clock(),
         energyLastTime: 1000,
-        energyGenerateSpeed: 1,
+        energyGenerateSpeed: 1, 
         energyGeneratePossibility: 0.1,
         energyLost: 0.05,
         score: 0,
