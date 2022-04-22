@@ -109,7 +109,7 @@ function resetGame() {
         point: 0,
         clock: new THREE.Clock(),
         energyLastTime: 1000,
-        energyGenerateSpeed: 1,
+        energyGenerateSpeed: 10,
         energyGeneratePossibility: 0.1,
         energyLost: 0.1,
         score: 0,
@@ -728,7 +728,7 @@ class EnemiesHolder {
             enemy.use = true;
             let newX = airPlane.mesh.position.x + (Math.random() - 0.5) * this.height;
             let newZ = airPlane.mesh.position.z + (Math.random() - 0.5) * this.height;
-            let newY =airPlane.mesh.position.z + (Math.random() - 0.5) * this.height
+            let newY =airPlane.mesh.position.y + (Math.random() - 0.5) * this.height
             enemy.mesh.position.x = newX;
             enemy.mesh.position.z = newZ;
             enemy.mesh.position.y = newY;
