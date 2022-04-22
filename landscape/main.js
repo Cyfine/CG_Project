@@ -455,7 +455,7 @@ let FireBall = function () {
         color: 0xffd700,
         transparent: true,
         opacity: .7,
-        shading: THREE.FlatShading,
+        flatShading:true,
     });
     this.mesh.add(new THREE.Mesh(ball, material));
     this.life = game.energyLastTime;
@@ -767,7 +767,7 @@ class Particle{
             color:0xffd700,
             shininess:0,
             specular:0xffffff,
-            shading:THREE.FlatShading
+            flatShading: true
         });
         this.mesh = new THREE.Mesh(geom,mat);
     }
@@ -958,9 +958,9 @@ class Chunk {
             },
             vertexShader: _VS, fragmentShader: _FS,
             side: THREE.DoubleSide,
-            flatShading: true,
+            // flatShading: true,
             opacity: 0.5,
-            shininess: 60,
+            // shininess: 60,
         })
         let waterMesh = new THREE.Mesh(this.waterPlane, this.waterMaterial);
         const xT = this.x * this.size + this.size / 2; //translate
